@@ -1,4 +1,8 @@
 const { Scan, Report, Patient, User, Doctor } = require('../models');
+const axios = require('axios'); //added for model integration process
+const fs = require('fs'); //added for model integration process
+const FormData = require('form-data'); //added for model integration process
+const { generatePDFReport } = require('./pdfController');
 const multer = require('multer');
 const path = require('path');
 const { Op } = require('sequelize');
@@ -251,13 +255,27 @@ const createReport = async (req, res) => {
     }
 };
 
-// @desc    Run AI Analysis on Scan (Mock)
+// ══════════════════════════════════════════════════════════════
+// ADD YE LINE — file ke bilkul upar, existing requires ke saath
+// ══════════════════════════════════════════════════════════════
+// const axios = require('axios');
+// const fs = require('fs');
+// const FormData = require('form-data');
+//
+// NOTE: Upar wali 3 lines scanController.js ke TOP pe add karni hain
+// existing requires ke saath jaise:
+// const { Scan, Report, Patient, User, Doctor } = require('../models');
+// ══════════════════════════════════════════════════════════════
+
+
+// @desc    Run AI Analysis on Scan (Real Flask API)
 // @route   POST /api/scans/:id/analyze
 // @access  Private (Doctor)
 const runAIAnalysis = async (req, res) => {
     const scanId = req.params.id;
 
     try {
+        // 1. Scan database se lo
         const scan = await Scan.findByPk(scanId, {
             include: [{ model: Patient, include: [{ model: User, attributes: ['name'] }] }]
         });
@@ -266,130 +284,89 @@ const runAIAnalysis = async (req, res) => {
             return res.status(404).json({ message: 'Scan not found' });
         }
 
-        // Mock AI Analysis - In production, this would call the AI microservice
-        const mockAnalysis = generateMockAIAnalysis(scan.scan_type);
+        // 2. Scan file ka path banao
+        const scanFilePath = path.join(__dirname, '..', scan.file_url);
 
-        // Update scan with AI results
-        scan.ai_prediction = mockAnalysis.predictions;
-        scan.ai_explanation = mockAnalysis.explanation;
-        scan.ai_heatmap_url = mockAnalysis.heatmapUrl;
-        scan.status = 'analyzed';
+        if (!fs.existsSync(scanFilePath)) {
+            return res.status(404).json({ message: 'Scan file not found on server' });
+        }
+
+        // 3. Flask API ko image bhejo
+        const formData = new FormData();
+        formData.append('image', fs.createReadStream(scanFilePath));
+
+        const flaskResponse = await axios.post(
+            'http://127.0.0.1:5002/api/analyze',
+            formData,
+            {
+                headers: { ...formData.getHeaders() },
+                timeout: 60000  // 60 seconds — model load hone ka time
+            }
+        );
+
+        const aiResult = flaskResponse.data;
+
+        if (!aiResult.success) {
+            return res.status(500).json({ message: 'AI analysis failed', error: aiResult.error });
+        }
+
+        // 4. Results database mein save karo
+        scan.ai_prediction = {
+            class_name:  aiResult.prediction.class_name,
+            class_idx:   aiResult.prediction.class_idx,
+            confidence:  aiResult.prediction.confidence,
+            all_probs:   aiResult.prediction.all_probs,
+        };
+
+        scan.ai_explanation = {
+            what_model_sees:  aiResult.explanation.what_model_sees,
+            why_prediction:   aiResult.explanation.why_prediction,
+            red_area_meaning: aiResult.explanation.red_area_meaning,
+            clinical_note:    aiResult.explanation.clinical_note,
+            validity_check:   aiResult.explanation.validity_check,
+            confidence_text:  aiResult.explanation.confidence_text,
+            eye_side:         aiResult.explanation.eye_side,
+            regions:          aiResult.regions,
+            analysis_meta:    aiResult.analysis_meta,
+        };
+
+        // Heatmap images base64 mein save karo
+        scan.ai_heatmap_url = aiResult.images.overlay;   // base64 overlay image
+
+        scan.status       = 'analyzed';
         scan.processed_at = new Date();
         await scan.save();
 
+        // 5. Frontend ko response bhejo
         res.json({
-            success: true,
-            scanId: scan.id,
-            analysis: mockAnalysis,
-            message: 'AI analysis completed successfully'
+            success:     true,
+            scanId:      scan.id,
+            prediction:  aiResult.prediction,
+            images:      aiResult.images,
+            explanation: aiResult.explanation,
+            regions:     aiResult.regions,
+            analysis_meta: aiResult.analysis_meta,
+            message:     'AI analysis completed successfully'
         });
+
     } catch (error) {
+        // Flask API down hai ya timeout
+        if (error.code === 'ECONNREFUSED') {
+            return res.status(503).json({
+                message: 'AI service unavailable. Please ensure the AI server is running.',
+                error: 'Flask API not reachable at http://127.0.0.1:5001'
+            });
+        }
+        if (error.code === 'ECONNABORTED') {
+            return res.status(504).json({
+                message: 'AI analysis timed out. Please try again.',
+                error: 'Request timeout'
+            });
+        }
         console.error("AI Analysis Error:", error);
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 };
-
-// Mock AI Analysis Generator
-function generateMockAIAnalysis(scanType) {
-    const analyses = {
-        mri_brain: {
-            predictions: {
-                primary: { condition: 'No significant abnormality', confidence: 0.92 },
-                differential: [
-                    { condition: 'Normal brain MRI', confidence: 0.92 },
-                    { condition: 'Minor age-related changes', confidence: 0.06 },
-                    { condition: 'Artifact', confidence: 0.02 }
-                ]
-            },
-            findings: [
-                'Brain parenchyma appears normal',
-                'No mass effect or midline shift',
-                'Ventricles are normal in size',
-                'No acute infarct or hemorrhage',
-                'No abnormal enhancement'
-            ],
-            explanation: 'The AI model analyzed the brain MRI using deep learning algorithms trained on over 100,000 brain scans. Key anatomical structures were identified and compared against normal parameters.',
-            heatmapUrl: null,
-            severity: 'Normal',
-            urgency: 'Routine'
-        },
-        retinal: {
-            predictions: {
-                primary: { condition: 'Mild Diabetic Retinopathy', confidence: 0.78 },
-                differential: [
-                    { condition: 'Mild Diabetic Retinopathy', confidence: 0.78 },
-                    { condition: 'Normal Retina', confidence: 0.15 },
-                    { condition: 'Moderate DR', confidence: 0.07 }
-                ]
-            },
-            findings: [
-                'Microaneurysms detected in temporal quadrant',
-                'No hard exudates observed',
-                'Optic disc appears normal',
-                'Macula shows no edema',
-                'Retinal vessels show mild tortuosity'
-            ],
-            explanation: 'The retinal scan was analyzed using a convolutional neural network specialized in detecting diabetic retinopathy markers. Attention maps highlight areas of concern.',
-            heatmapUrl: null,
-            severity: 'Mild',
-            urgency: 'Follow-up in 6 months'
-        },
-        xray: {
-            predictions: {
-                primary: { condition: 'Possible Pneumonia', confidence: 0.85 },
-                differential: [
-                    { condition: 'Bacterial Pneumonia', confidence: 0.85 },
-                    { condition: 'Viral Pneumonia', confidence: 0.10 },
-                    { condition: 'Normal', confidence: 0.05 }
-                ]
-            },
-            findings: [
-                'Opacity observed in right lower lobe',
-                'No pleural effusion',
-                'Heart size within normal limits',
-                'No pneumothorax',
-                'Bony structures intact'
-            ],
-            explanation: 'Chest X-ray analysis performed using a ResNet-based model trained on NIH ChestX-ray14 dataset. Areas of opacity highlighted for clinical correlation.',
-            heatmapUrl: null,
-            severity: 'Moderate',
-            urgency: 'Clinical correlation recommended'
-        },
-        ct_scan: {
-            predictions: {
-                primary: { condition: 'No acute findings', confidence: 0.88 },
-                differential: [
-                    { condition: 'Normal CT', confidence: 0.88 },
-                    { condition: 'Minor degenerative changes', confidence: 0.10 },
-                    { condition: 'Other', confidence: 0.02 }
-                ]
-            },
-            findings: [
-                'No acute intracranial hemorrhage',
-                'Brain parenchyma appears normal',
-                'No mass lesion identified',
-                'Sinuses are clear',
-                'Orbits appear normal'
-            ],
-            explanation: 'CT scan analyzed using 3D convolutional neural network for volumetric assessment. All slices reviewed for abnormalities.',
-            heatmapUrl: null,
-            severity: 'Normal',
-            urgency: 'Routine'
-        }
-    };
-
-    return analyses[scanType] || {
-        predictions: {
-            primary: { condition: 'Analysis Complete', confidence: 0.75 },
-            differential: [{ condition: 'Requires specialist review', confidence: 0.75 }]
-        },
-        findings: ['Scan processed successfully', 'Awaiting specialist interpretation'],
-        explanation: 'General analysis completed. Specialist review recommended for detailed interpretation.',
-        heatmapUrl: null,
-        severity: 'Unknown',
-        urgency: 'Specialist review'
-    };
-}
 
 // @desc    Upload External Scan (Patient)
 // @route   POST /api/scans/external
@@ -606,5 +583,6 @@ module.exports = {
     runAIAnalysis,
     uploadExternalScan,
     uploadInternalScan,
-    getAIAnalysis
+    getAIAnalysis,
+    generatePDFReport
 };

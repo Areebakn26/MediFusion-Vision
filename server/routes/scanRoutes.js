@@ -1,3 +1,4 @@
+const { generatePDFReport } = require('../controllers/pdfController');
 const express = require('express');
 const router = express.Router();
 const { 
@@ -32,6 +33,9 @@ router.get('/:id/analysis', protect, getAIAnalysis);
 
 // Run AI analysis (Doctor only)
 router.post('/:id/analyze', protect, requireRole(['doctor', 'admin']), runAIAnalysis);
+
+// Ye line add karo scanRoutes.js mein
+router.post('/:id/report/pdf', protect, requireRole(['doctor']), generatePDFReport);
 
 // Create/Update report (Doctor only)
 router.post('/:id/report', protect, requireRole(['doctor']), createReport);
