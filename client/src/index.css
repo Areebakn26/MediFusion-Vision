@@ -1,0 +1,352 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary-50: #f0fdfa;
+  --color-primary-100: #ccfbf1;
+  --color-primary-200: #99f6e4;
+  --color-primary-300: #5eead4;
+  --color-primary-400: #2dd4bf;
+  --color-primary-500: #14b8a6;
+  --color-primary-600: #0d9488;
+  --color-primary-700: #0f766e;
+  --color-primary-800: #115e59;
+  --color-primary-900: #134e4a;
+
+  --color-secondary-50: #eff6ff;
+  --color-secondary-100: #dbeafe;
+  --color-secondary-200: #bfdbfe;
+  --color-secondary-300: #93c5fd;
+  --color-secondary-400: #60a5fa;
+  --color-secondary-500: #3b82f6;
+  --color-secondary-600: #2563eb;
+  --color-secondary-700: #1d4ed8;
+  --color-secondary-800: #1e40af;
+  --color-secondary-900: #1e3a8a;
+
+  --font-sans: Inter, system-ui, sans-serif;
+
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
+  --radius-3xl: 2rem;
+
+  --shadow-soft: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+  --shadow-glow: 0 0 15px rgba(13, 148, 136, 0.3);
+}
+
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color-scheme: light;
+  color: #0f172a;
+  background-color: #f8fafc;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background-color: #f8fafc;
+  pointer-events: auto !important;
+  user-select: auto !important;
+}
+
+/* Emergency: Ensure main content is always clickable */
+main,
+[role="main"],
+.main-content {
+  pointer-events: auto !important;
+  position: relative;
+  z-index: 1;
+}
+
+/* Force all pages to be clickable */
+body,
+html {
+  pointer-events: auto !important;
+  user-select: auto !important;
+}
+
+/* Remove any blocking overlays */
+[class*="overlay"],
+[class*="backdrop"],
+[class*="loading"],
+[class*="Loading"] {
+  pointer-events: auto !important;
+}
+
+/* Ensure all interactive elements work */
+button,
+a,
+input,
+select,
+textarea,
+[role="button"] {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+}
+
+/* REMOVE ALL LOADING OVERLAYS */
+[class*="fixed"][class*="inset-0"][class*="backdrop-blur"] {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+/* Force unblock button to always be clickable */
+button[style*="FORCE UNBLOCK"],
+button[style*="z-index: 99999"] {
+  pointer-events: auto !important;
+  z-index: 999999 !important;
+  position: fixed !important;
+  display: block !important;
+}
+
+/* CRITICAL: Force scrolling and clicking */
+html,
+body {
+  overflow: auto !important;
+  overflow-x: hidden !important;
+  height: auto !important;
+  min-height: 100vh !important;
+  pointer-events: auto !important;
+  position: relative !important;
+}
+
+/* FORCE all interactive elements to be clickable */
+main,
+main *,
+form,
+form *,
+input,
+button,
+select,
+textarea,
+a,
+[role="button"],
+[role="link"],
+div[class*="max-w"],
+div[class*="min-h-screen"] {
+  pointer-events: auto !important;
+  cursor: default !important;
+}
+
+button,
+a,
+[role="button"],
+[role="link"] {
+  cursor: pointer !important;
+}
+
+/* Force main content areas to be clickable and scrollable - HIGHEST PRIORITY */
+main,
+[role="main"],
+.main-content,
+div[class*="min-h-screen"],
+div[class*="max-w"],
+div[class*="flex-1"] {
+  pointer-events: auto !important;
+  overflow: auto !important;
+  overflow-x: hidden !important;
+  position: relative !important;
+  z-index: 100 !important;
+}
+
+/* CRITICAL: Ensure main content container is always on top */
+main>* {
+  pointer-events: auto !important;
+  position: relative !important;
+  z-index: 101 !important;
+}
+
+/* Ensure forms and inputs work */
+form,
+input,
+select,
+textarea,
+button,
+a {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+}
+
+/* Remove any fixed overlays that might be blocking - but be more specific */
+/* Remove any fixed overlays that might be blocking - but be more specific */
+/* Disabled: This was too aggressive and destroyed normal Tailwind Modals. */
+
+/* CRITICAL: Remove ALL transparent fixed overlays */
+div[style*="position: fixed"],
+div[style*="position:fixed"] {
+  background-color: transparent !important;
+}
+
+/* Force remove any element with backdrop-filter that's not a modal */
+/* Disabled: This was too aggressive and destroyed glassmorphism effects. */
+
+/* Don't force overflow on all divs - too aggressive, breaks layout */
+/* Only force on main content areas */
+main>div,
+[role="main"]>div {
+  overflow: visible !important;
+}
+
+/* Glassmorphism Utility */
+.glass {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes pulseSlow {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.6s ease-out forwards;
+}
+
+.animate-pulse-slow {
+  animation: pulseSlow 3s infinite;
+}
+
+.delay-100 {
+  animation-delay: 100ms;
+}
+
+.delay-200 {
+  animation-delay: 200ms;
+}
+
+.delay-300 {
+  animation-delay: 300ms;
+}
+
+/* --- Accessibility & Multi-language Support --- */
+
+/* Multi-language Support: RTL (Urdu) */
+html.rtl {
+  direction: rtl;
+  text-align: right;
+}
+
+html.rtl .mr-2 {
+  margin-right: 0 !important;
+  margin-left: 0.5rem !important;
+}
+
+html.rtl .ml-2 {
+  margin-left: 0 !important;
+  margin-right: 0.5rem !important;
+}
+
+html.rtl .mr-4 {
+  margin-right: 0 !important;
+  margin-left: 1rem !important;
+}
+
+html.rtl .ml-4 {
+  margin-left: 0 !important;
+  margin-right: 1rem !important;
+}
+
+/* Accessibility Settings: High Contrast */
+body.high-contrast {
+  filter: contrast(1.2) saturate(1.5);
+}
+
+body.high-contrast .glass,
+body.high-contrast div[class*="bg-white"] {
+  background: #ffffff !important;
+  border: 1px solid #000 !important;
+  color: #000 !important;
+}
+
+body.high-contrast p,
+body.high-contrast span,
+body.high-contrast h1,
+body.high-contrast h2,
+body.high-contrast h3,
+body.high-contrast h4,
+body.high-contrast h5,
+body.high-contrast h6 {
+  color: #000 !important;
+}
+
+body.high-contrast button {
+  border: 2px solid #000 !important;
+}
+
+/* Accessibility Settings: Large Text */
+body.large-text {
+  font-size: 1.15rem !important;
+}
+
+body.large-text h1,
+body.large-text h2,
+body.large-text h3 {
+  font-size: 1.25em !important;
+}
+
+body.large-text button,
+body.large-text input,
+body.large-text select,
+body.large-text p {
+  font-size: 1.15rem !important;
+}
