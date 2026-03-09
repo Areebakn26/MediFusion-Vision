@@ -7,6 +7,7 @@ const {
     getScanById, 
     createReport,
     runAIAnalysis,
+    runBrainAIAnalysis,
     uploadExternalScan,
     uploadInternalScan,
     getAIAnalysis
@@ -33,6 +34,8 @@ router.get('/:id/analysis', protect, getAIAnalysis);
 
 // Run AI analysis (Doctor only)
 router.post('/:id/analyze', protect, requireRole(['doctor', 'admin']), runAIAnalysis);
+
+router.post('/:id/analyze-brain', protect, requireRole(['doctor', 'admin']), runBrainAIAnalysis);
 
 // Ye line add karo scanRoutes.js mein
 router.post('/:id/report/pdf', protect, requireRole(['doctor']), generatePDFReport);

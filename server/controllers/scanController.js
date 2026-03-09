@@ -354,7 +354,7 @@ const runAIAnalysis = async (req, res) => {
         if (error.code === 'ECONNREFUSED') {
             return res.status(503).json({
                 message: 'AI service unavailable. Please ensure the AI server is running.',
-                error: 'Flask API not reachable at http://127.0.0.1:5001'
+                error: 'Flask API not reachable at http://127.0.0.1:5002'
             });
         }
         if (error.code === 'ECONNABORTED') {
@@ -364,6 +364,99 @@ const runAIAnalysis = async (req, res) => {
             });
         }
         console.error("AI Analysis Error:", error);
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};
+
+// @desc    Run AI Analysis on Brain Scan (Tumor + Alzheimer)
+// @route   POST /api/scans/:id/analyze-brain
+// @access  Private (Doctor)
+const runBrainAIAnalysis = async (req, res) => {
+    const scanId = req.params.id;
+
+    try {
+        const scan = await Scan.findByPk(scanId, {
+            include: [{ model: Patient, include: [{ model: User, attributes: ['name'] }] }]
+        });
+
+        if (!scan) {
+            return res.status(404).json({ message: 'Scan not found' });
+        }
+
+        const scanFilePath = path.join(__dirname, '..', scan.file_url);
+        if (!fs.existsSync(scanFilePath)) {
+            return res.status(404).json({ message: 'Scan file not found on server' });
+        }
+
+        const formData = new FormData();
+        formData.append('image', fs.createReadStream(scanFilePath));
+
+        const flaskResponse = await axios.post(
+            'http://127.0.0.1:5003/api/analyze',
+            formData,
+            {
+                headers: { ...formData.getHeaders() },
+                timeout: 120000  // 2 minutes — 2 models run hote hain
+            }
+        );
+
+        const aiResult = flaskResponse.data;
+
+        if (!aiResult.success) {
+            return res.status(500).json({ message: 'Brain AI analysis failed', error: aiResult.error });
+        }
+
+        // Save results to DB
+        scan.ai_prediction = {
+            scan_type:    'brain_mri',
+            tumor:        aiResult.tumor,
+            alzheimer:    aiResult.alzheimer,
+            clinical_summary: aiResult.clinical_summary,
+            patient_summary:  aiResult.patient_summary,
+            model_version:    aiResult.model_version,
+        };
+
+        scan.ai_explanation = {
+            tumor_finding:    aiResult.tumor.clinical_finding,
+            alz_finding:      aiResult.alzheimer.clinical_finding,
+            tumor_xai:        aiResult.tumor.xai_reasoning,
+            alz_xai:          aiResult.alzheimer.xai_reasoning,
+            clinical_note:    aiResult.clinical_summary.clinical_note,
+            overall_status:   aiResult.clinical_summary.overall_status,
+            priority:         aiResult.clinical_summary.priority,
+        };
+
+        scan.ai_heatmap_url = aiResult.images.tumor_heatmap || aiResult.images.alz_heatmap || null;
+        scan.status         = 'analyzed';
+        scan.processed_at   = new Date();
+        await scan.save();
+
+        res.json({
+            success:          true,
+            scanId:           scan.id,
+            scan_type:        'brain_mri',
+            images:           aiResult.images,
+            tumor:            aiResult.tumor,
+            alzheimer:        aiResult.alzheimer,
+            clinical_summary: aiResult.clinical_summary,
+            patient_summary:  aiResult.patient_summary,
+            message:          'Brain AI analysis completed successfully'
+        });
+
+    } catch (error) {
+        if (error.code === 'ECONNREFUSED') {
+            return res.status(503).json({
+                message: 'Brain AI service unavailable. Please ensure the Brain AI server is running.',
+                error: 'Flask API not reachable at http://127.0.0.1:5003'
+            });
+        }
+        if (error.code === 'ECONNABORTED') {
+            return res.status(504).json({
+                message: 'Brain AI analysis timed out. Please try again.',
+                error: 'Request timeout'
+            });
+        }
+        console.error("Brain AI Analysis Error:", error);
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 };
@@ -581,6 +674,7 @@ module.exports = {
     getScanById,
     createReport,
     runAIAnalysis,
+    runBrainAIAnalysis,
     uploadExternalScan,
     uploadInternalScan,
     getAIAnalysis,
