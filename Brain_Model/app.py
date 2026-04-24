@@ -46,7 +46,7 @@ tumor_model.fc = nn.Linear(tumor_model.fc.in_features, 4)
 tumor_model.load_state_dict(torch.load(TUMOR_MODEL_PATH, map_location=DEVICE))
 tumor_model.to(DEVICE)
 tumor_model.eval()
-print("✅ Tumor model loaded!")
+print("Tumor model loaded!")
 
 alz_model = models.densenet121(weights=None)
 alz_model.classifier = nn.Sequential(
@@ -56,7 +56,7 @@ alz_model.classifier = nn.Sequential(
 alz_model.load_state_dict(torch.load(ALZ_MODEL_PATH, map_location=DEVICE))
 alz_model.to(DEVICE)
 alz_model.eval()
-print("✅ Alzheimer model loaded!")
+print("Alzheimer model loaded!")
 
 # ── GradCAM target layers ──
 tumor_target_layer = [tumor_model.layer4[-1].conv2]
@@ -376,5 +376,5 @@ def analyze():
 # RUN
 # ============================================================
 if __name__ == "__main__":
-    print("\n🧠 Brain AI Flask API starting on port 5003...")
+    print("\nBrain AI Flask API starting on port 5003...")
     app.run(host="0.0.0.0", port=5003, debug=False)

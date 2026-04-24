@@ -1,16 +1,17 @@
 const { generatePDFReport } = require('../controllers/pdfController');
 const express = require('express');
 const router = express.Router();
-const { 
-    uploadScan, 
-    getScans, 
-    getScanById, 
+const {
+    uploadScan,
+    getScans,
+    getScanById,
     createReport,
     runAIAnalysis,
     runBrainAIAnalysis,
     uploadExternalScan,
     uploadInternalScan,
-    getAIAnalysis
+    getAIAnalysis,
+    provideFeedback
 } = require('../controllers/scanController');
 const { protect, requireRole } = require('../middleware/authMiddleware');
 
@@ -19,6 +20,7 @@ router.post('/upload', protect, uploadScan);
 
 // External scan upload (Patient)
 router.post('/external', protect, requireRole(['patient']), uploadExternalScan);
+router.post('/upload/external', protect, requireRole(['patient']), uploadExternalScan);
 
 // Internal scan upload (Admin)
 router.post('/internal', protect, requireRole(['admin']), uploadInternalScan);
@@ -42,5 +44,8 @@ router.post('/:id/report/pdf', protect, requireRole(['doctor']), generatePDFRepo
 
 // Create/Update report (Doctor only)
 router.post('/:id/report', protect, requireRole(['doctor']), createReport);
+
+// Provide feedback on AI analysis
+router.post('/:id/feedback', protect, requireRole(['doctor', 'admin']), provideFeedback);
 
 module.exports = router;

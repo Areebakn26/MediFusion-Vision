@@ -90,6 +90,11 @@
     "uploadScanFile_label": "فائل اپ لوڈ کریں",
     "uploadAndAnalyze_btn": "اپ لوڈ اور تجزیہ کریں",
     "cancel_btn": "منسوخ کریں",
+    "upload": {
+        "submit": "اسکین جمع کروائیں",
+        "selectFileFirst": "آگے بڑھنے کے لیے براہ کرم ایک فائل منتخب کریں"
+    },
+    "ai_service_unavailable": "AI سروس عارضی طور پر دستیاب نہیں ہے",
     "auth": {
         "welcomeBack": "خوش آمدید",
         "signInToAccount": "اپنے اکاؤنٹ میں سائن ان کریں",

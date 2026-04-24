@@ -1,4 +1,5 @@
 import os
+os.environ["TF_USE_LEGACY_KERAS"] = "1"
 import io
 import base64
 import warnings
@@ -29,7 +30,7 @@ CORS(app)  # React frontend se connection allow karo
 # ══════════════════════════════════════════════════════════════
 # CONFIG
 # ══════════════════════════════════════════════════════════════
-MODEL_PATH = os.path.join(os.path.dirname(__file__), "efficientnetb3-Eye Disease-91.47.keras")
+MODEL_PATH = os.path.join(os.path.dirname(__file__), "efficientnetb3-Eye Disease-91.47.h5")
 CLASS_DICT  = {0: "cataract", 1: "diabetic_retinopathy", 2: "glaucoma", 3: "normal"}
 CONV_LAYER  = "block6a_expand_conv"
 IMG_SIZE    = (224, 224)
@@ -99,8 +100,10 @@ DISEASE_KNOWLEDGE = {
 # ══════════════════════════════════════════════════════════════
 # LOAD MODEL — server start pe ek baar load hoga
 # ══════════════════════════════════════════════════════════════
-print("🔄 Loading model...")
-model = tf.keras.models.load_model(MODEL_PATH)
+print("Loading model (using tf_keras for legacy support)...")
+
+import tf_keras
+model = tf_keras.models.load_model(MODEL_PATH, compile=False)
 
 base_model      = model.layers[0]
 last_conv_layer = base_model.get_layer(CONV_LAYER)
@@ -108,7 +111,7 @@ conv_model      = tf.keras.models.Model(
     inputs  = base_model.input,
     outputs = [last_conv_layer.output, base_model.output]
 )
-print("✅ Model loaded!")
+print("Model loaded!")
 
 # ══════════════════════════════════════════════════════════════
 # HELPER FUNCTIONS

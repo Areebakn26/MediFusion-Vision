@@ -22,7 +22,11 @@ const Diagnostics = () => {
     const [aiAnalysis, setAiAnalysis] = useState(null);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [diagnosis, setDiagnosis] = useState('');
-    const [notes, setNotes] = useState('');
+    const [doctorNotes, setDoctorNotes] = useState('');
+    const [finalizing, setFinalizing] = useState(false);
+    const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+    const [feedbackReason, setFeedbackReason] = useState('');
+    const [submittingFeedback, setSubmittingFeedback] = useState(false);
     const [loading, setLoading] = useState(true);
     const [showHeatmap, setShowHeatmap] = useState('original'); // 'original' | 'tumor' | 'alz'
     const [activeTab, setActiveTab] = useState('findings');
@@ -47,7 +51,7 @@ const Diagnostics = () => {
         setSelectedScan(scan);
         setAiAnalysis(null);
         setDiagnosis('');
-        setNotes('');
+        setDoctorNotes('');
         setShowHeatmap('original');
         setActiveTab('findings');
         setReportSubmitted(false);
@@ -56,6 +60,13 @@ const Diagnostics = () => {
     // ── Run AI Analysis — retinal OR brain ──
     const runAIAnalysis = async () => {
         if (!selectedScan) return;
+        // Model Validation Logic
+        const scanType = selectedScan.scanType || selectedScan.scan_type;
+        const confirmMsg = `This scan is categorized as ${scanType.replace('_', ' ')}. Are you sure you want to run the Brain MRI AI model? The results may not be accurate for other scan types.`;
+
+        if (isBrainScan(selectedScan) && scanType !== 'mri_brain' && !window.confirm(confirmMsg)) {
+            return;
+        }
         setIsAnalyzing(true);
         try {
             const scanId = selectedScan.id || selectedScan._id;
@@ -70,7 +81,7 @@ const Diagnostics = () => {
             if (isBrainScan(selectedScan)) {
                 // Brain: use clinical summary
                 const tumorResult = data.tumor?.prediction || '';
-                const alzResult   = data.alzheimer?.prediction || '';
+                const alzResult = data.alzheimer?.prediction || '';
                 setDiagnosis(`Tumor: ${tumorResult} | Alzheimer: ${alzResult}`);
             } else {
                 // Retinal
@@ -92,18 +103,49 @@ const Diagnostics = () => {
     const handleCreateReport = async (e) => {
         e.preventDefault();
         if (!selectedScan) return;
+        setFinalizing(true);
         try {
             await api.post(`/scans/${selectedScan.id || selectedScan._id}/report`, {
                 diagnosis,
-                notes,
+                notes: doctorNotes,
                 aiFindings: aiAnalysis
             });
             toast.success('Report finalized! Patient notified.');
             setReportSubmitted(true);
+            setSelectedScan(null);
+            setAiAnalysis(null);
+            setDiagnosis('');
+            setDoctorNotes('');
             fetchScans();
         } catch (error) {
             console.error("Error creating report", error);
             toast.error('Failed to create report');
+        } finally {
+            setFinalizing(false);
+        }
+    };
+
+    const handleDisapprove = async () => {
+        if (!selectedScan || !aiAnalysis || !feedbackReason) return;
+
+        setSubmittingFeedback(true);
+        try {
+            await api.post(`/scans/${selectedScan.id || selectedScan._id}/feedback`, {
+                aiAnalysisId: aiAnalysis.id, // Assuming AI analysis has an ID
+                reason: feedbackReason,
+                status: 'disapproved'
+            });
+            toast.success('Feedback submitted. AI analysis flagged for review.');
+            setShowFeedbackModal(false);
+            setFeedbackReason('');
+            // Optionally, clear AI analysis or mark scan as 'flagged'
+            // setAiAnalysis(null);
+            // fetchScans(); // Refresh scans to show updated status
+        } catch (error) {
+            console.error("Error submitting feedback", error);
+            toast.error('Failed to submit feedback.');
+        } finally {
+            setSubmittingFeedback(false);
         }
     };
 
@@ -114,14 +156,14 @@ const Diagnostics = () => {
         try {
             const response = await api.post(
                 `/scans/${selectedScan.id || selectedScan._id}/report/pdf`,
-                { diagnosis, notes, aiFindings: aiAnalysis },
+                { diagnosis, notes: doctorNotes, aiFindings: aiAnalysis },
                 { responseType: 'blob' }
             );
             const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
             const link = document.createElement('a');
             link.href = url;
             link.setAttribute('download',
-                `MediFusion_Report_${selectedScan.patient?.name || 'Patient'}_${new Date().toISOString().slice(0,10)}.pdf`
+                `MediFusion_Report_${selectedScan.patient?.name || 'Patient'}_${new Date().toISOString().slice(0, 10)}.pdf`
             );
             document.body.appendChild(link);
             link.click();
@@ -139,9 +181,9 @@ const Diagnostics = () => {
     const getScanIcon = (type) => {
         const icons = {
             mri_brain: <FaBrain className="text-purple-500" />,
-            retinal:   <FaEye className="text-blue-500" />,
-            xray:      <FaLungs className="text-teal-500" />,
-            ct_scan:   <FaXRay className="text-indigo-500" />
+            retinal: <FaEye className="text-blue-500" />,
+            xray: <FaLungs className="text-teal-500" />,
+            ct_scan: <FaXRay className="text-indigo-500" />
         };
         return icons[type] || <FaMicroscope className="text-gray-500" />;
     };
@@ -166,10 +208,10 @@ const Diagnostics = () => {
     const getDisplayImage = () => {
         if (!aiAnalysis?.images) return `http://localhost:5000${selectedScan?.filePath || selectedScan?.file_url}`;
         const imgs = aiAnalysis.images;
-        if (showHeatmap === 'tumor' && imgs.tumor_heatmap)   return `data:image/png;base64,${imgs.tumor_heatmap}`;
-        if (showHeatmap === 'alz'   && imgs.alz_heatmap)     return `data:image/png;base64,${imgs.alz_heatmap}`;
-        if (showHeatmap === 'overlay' && imgs.overlay)        return `data:image/jpeg;base64,${imgs.overlay}`;
-        if (imgs.original)                                    return `data:image/png;base64,${imgs.original}`;
+        if (showHeatmap === 'tumor' && imgs.tumor_heatmap) return `data:image/png;base64,${imgs.tumor_heatmap}`;
+        if (showHeatmap === 'alz' && imgs.alz_heatmap) return `data:image/png;base64,${imgs.alz_heatmap}`;
+        if (showHeatmap === 'overlay' && imgs.overlay) return `data:image/jpeg;base64,${imgs.overlay}`;
+        if (imgs.original) return `data:image/png;base64,${imgs.original}`;
         return `http://localhost:5000${selectedScan?.filePath || selectedScan?.file_url}`;
     };
 
@@ -265,11 +307,10 @@ const Diagnostics = () => {
                             <button
                                 key={tab}
                                 onClick={() => setActiveTab(tab)}
-                                className={`flex-1 py-3 text-sm font-medium transition-all capitalize ${
-                                    activeTab === tab
-                                        ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
-                                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-                                }`}
+                                className={`flex-1 py-3 text-sm font-medium transition-all capitalize ${activeTab === tab
+                                    ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
+                                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                                    }`}
                             >
                                 {tab}
                             </button>
@@ -532,11 +573,10 @@ const Diagnostics = () => {
                                     animate={{ opacity: 1, x: 0 }}
                                     transition={{ delay: index * 0.05 }}
                                     onClick={() => handleSelectScan(scan)}
-                                    className={`p-4 rounded-xl cursor-pointer border-2 transition-all ${
-                                        (selectedScan?.id || selectedScan?._id) === (scan.id || scan._id)
-                                            ? 'bg-blue-50 border-blue-300 shadow-md'
-                                            : 'bg-white/50 border-transparent hover:bg-white hover:border-gray-200 hover:shadow-sm'
-                                    }`}
+                                    className={`p-4 rounded-xl cursor-pointer border-2 transition-all ${(selectedScan?.id || selectedScan?._id) === (scan.id || scan._id)
+                                        ? 'bg-blue-50 border-blue-300 shadow-md'
+                                        : 'bg-white/50 border-transparent hover:bg-white hover:border-gray-200 hover:shadow-sm'
+                                        }`}
                                 >
                                     <div className="flex items-start gap-3">
                                         <div className="p-2 bg-gray-100 rounded-lg text-xl">
@@ -671,10 +711,10 @@ const Diagnostics = () => {
                                                         <span className="w-3 h-3 rounded bg-blue-500 ml-2"></span><span>Low</span>
                                                     </div>
                                                 )}
-                                            </div>
+                                            </div >
 
                                             {/* Scan Metadata */}
-                                            <div className="bg-gray-50 rounded-xl p-4">
+                                            < div className="bg-gray-50 rounded-xl p-4" >
                                                 <h4 className="font-semibold text-gray-700 mb-3 flex items-center gap-2"><FaFileAlt /> Scan Information</h4>
                                                 <div className="grid grid-cols-2 gap-3 text-sm">
                                                     <div><span className="text-gray-500">Patient:</span><span className="ml-2 font-medium">{selectedScan.patient?.name || 'N/A'}</span></div>
@@ -696,100 +736,105 @@ const Diagnostics = () => {
                                                         </>
                                                     )}
                                                 </div>
-                                            </div>
-                                        </div>
+                                            </div >
+                                        </div >
 
                                         {/* ── AI Results Panel ── */}
-                                        <div className="space-y-4">
-                                            {isAnalyzing ? (
-                                                <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl p-8 text-center border border-blue-100">
-                                                    <div className="relative w-20 h-20 mx-auto mb-4">
-                                                        <div className="absolute inset-0 border-4 border-blue-200 rounded-full"></div>
-                                                        <div className="absolute inset-0 border-4 border-blue-600 rounded-full border-t-transparent animate-spin"></div>
-                                                        <div className="absolute inset-0 flex items-center justify-center">
-                                                            <FaBrain className="text-2xl text-blue-600" />
+                                        < div className="space-y-4" >
+                                            {
+                                                isAnalyzing ? (
+                                                    <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl p-8 text-center border border-blue-100" >
+                                                        <div className="relative w-20 h-20 mx-auto mb-4">
+                                                            <div className="absolute inset-0 border-4 border-blue-200 rounded-full"></div>
+                                                            <div className="absolute inset-0 border-4 border-blue-600 rounded-full border-t-transparent animate-spin"></div>
+                                                            <div className="absolute inset-0 flex items-center justify-center">
+                                                                <FaBrain className="text-2xl text-blue-600" />
+                                                            </div>
+                                                        </div>
+                                                        <h3 className="text-lg font-bold text-gray-800 mb-2">AI Analysis in Progress</h3>
+                                                        <p className="text-gray-500 text-sm">
+                                                            {isBrainScan(selectedScan)
+                                                                ? 'Running Tumor (ResNet18) + Alzheimer (DenseNet121) models...'
+                                                                : 'Running GradCAM on EfficientNetB3...'}
+                                                        </p>
+                                                        <div className="mt-4 space-y-2 text-xs text-gray-400">
+                                                            <p>✓ Image preprocessing</p>
+                                                            <p>⟳ Running neural network inference...</p>
+                                                            <p>○ Generating GradCAM heatmap</p>
+                                                            {isBrainScan(selectedScan) && <p>○ Running Alzheimer's model...</p>}
                                                         </div>
                                                     </div>
-                                                    <h3 className="text-lg font-bold text-gray-800 mb-2">AI Analysis in Progress</h3>
-                                                    <p className="text-gray-500 text-sm">
-                                                        {isBrainScan(selectedScan)
-                                                            ? 'Running Tumor (ResNet18) + Alzheimer (DenseNet121) models...'
-                                                            : 'Running GradCAM on EfficientNetB3...'}
-                                                    </p>
-                                                    <div className="mt-4 space-y-2 text-xs text-gray-400">
-                                                        <p>✓ Image preprocessing</p>
-                                                        <p>⟳ Running neural network inference...</p>
-                                                        <p>○ Generating GradCAM heatmap</p>
-                                                        {isBrainScan(selectedScan) && <p>○ Running Alzheimer's model...</p>}
+
+                                                ) : aiAnalysis ? (
+                                                    isBrainScan(selectedScan)
+                                                        ? renderBrainResults()
+                                                        : renderRetinalResults()
+
+                                                ) : (
+                                                    <div className="bg-gray-50 rounded-xl p-8 text-center border-2 border-dashed border-gray-200">
+                                                        <FaRobot className="text-5xl text-gray-300 mx-auto mb-4" />
+                                                        <h3 className="text-lg font-bold text-gray-600 mb-2">Ready for AI Analysis</h3>
+                                                        <p className="text-gray-400 text-sm mb-4">
+                                                            {isBrainScan(selectedScan)
+                                                                ? 'Click "Run Brain AI Analysis" to detect tumor & Alzheimer\'s.'
+                                                                : 'Click "Run AI Analysis" to process this retinal scan.'}
+                                                        </p>
+                                                        <Button onClick={runAIAnalysis} className="mx-auto">
+                                                            <FaRobot className="mr-2" /> Start Analysis
+                                                        </Button>
                                                     </div>
-                                                </div>
-
-                                            ) : aiAnalysis ? (
-                                                isBrainScan(selectedScan)
-                                                    ? renderBrainResults()
-                                                    : renderRetinalResults()
-
-                                            ) : (
-                                                <div className="bg-gray-50 rounded-xl p-8 text-center border-2 border-dashed border-gray-200">
-                                                    <FaRobot className="text-5xl text-gray-300 mx-auto mb-4" />
-                                                    <h3 className="text-lg font-bold text-gray-600 mb-2">Ready for AI Analysis</h3>
-                                                    <p className="text-gray-400 text-sm mb-4">
-                                                        {isBrainScan(selectedScan)
-                                                            ? 'Click "Run Brain AI Analysis" to detect tumor & Alzheimer\'s.'
-                                                            : 'Click "Run AI Analysis" to process this retinal scan.'}
-                                                    </p>
-                                                    <Button onClick={runAIAnalysis} className="mx-auto">
-                                                        <FaRobot className="mr-2" /> Start Analysis
-                                                    </Button>
-                                                </div>
-                                            )}
+                                                )}
 
                                             {/* Doctor Report Form */}
-                                            {aiAnalysis && !reportSubmitted && (
-                                                <form onSubmit={handleCreateReport} className="bg-white rounded-xl p-6 border border-gray-100">
-                                                    <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
-                                                        <FaFileAlt className="text-blue-500" /> Doctor's Final Report
-                                                    </h3>
-                                                    <div className="space-y-4">
-                                                        <div>
-                                                            <label className="block text-sm font-medium text-gray-700 mb-2">Diagnosis</label>
-                                                            <Input value={diagnosis} onChange={(e) => setDiagnosis(e.target.value)} placeholder="Enter final diagnosis..." required />
+                                            {
+                                                aiAnalysis && !reportSubmitted && (
+                                                    <form onSubmit={handleCreateReport} className="bg-white rounded-xl p-6 border border-gray-100">
+                                                        <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                                                            <FaFileAlt className="text-blue-500" /> Doctor's Final Report
+                                                        </h3>
+                                                        <div className="space-y-4">
+                                                            <div>
+                                                                <label className="block text-sm font-medium text-gray-700 mb-2">Diagnosis</label>
+                                                                <Input value={diagnosis} onChange={(e) => setDiagnosis(e.target.value)} placeholder="Enter final diagnosis..." required />
+                                                            </div>
+                                                            <div>
+                                                                <label className="block text-sm font-medium text-gray-700 mb-2">Clinical Notes & Recommendations</label>
+                                                                <textarea rows={4}
+                                                                    className="w-full px-4 py-3 rounded-xl bg-white border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all resize-none"
+                                                                    value={doctorNotes} onChange={(e) => setDoctorNotes(e.target.value)}
+                                                                    placeholder="Add clinical notes, recommendations, follow-up instructions..." required />
+                                                            </div>
+                                                            <div className="flex gap-3">
+                                                                <Button type="submit" size="lg" className="flex-1 shadow-lg">
+                                                                    <FaCheckCircle className="mr-2" /> Finalize & Notify Patient
+                                                                </Button>
+                                                                <Button type="button" onClick={handleDownloadPDF} disabled={isGeneratingPdf} size="lg" className="bg-red-500 hover:bg-red-600 text-white shadow-lg">
+                                                                    {isGeneratingPdf ? <FaSpinner className="animate-spin" /> : <FaFilePdf />}
+                                                                </Button>
+                                                            </div>
                                                         </div>
-                                                        <div>
-                                                            <label className="block text-sm font-medium text-gray-700 mb-2">Clinical Notes & Recommendations</label>
-                                                            <textarea rows={4}
-                                                                className="w-full px-4 py-3 rounded-xl bg-white border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all resize-none"
-                                                                value={notes} onChange={(e) => setNotes(e.target.value)}
-                                                                placeholder="Add clinical notes, recommendations, follow-up instructions..." required />
-                                                        </div>
-                                                        <div className="flex gap-3">
-                                                            <Button type="submit" size="lg" className="flex-1 shadow-lg">
-                                                                <FaCheckCircle className="mr-2" /> Finalize & Notify Patient
-                                                            </Button>
-                                                            <Button type="button" onClick={handleDownloadPDF} disabled={isGeneratingPdf} size="lg" className="bg-red-500 hover:bg-red-600 text-white shadow-lg">
-                                                                {isGeneratingPdf ? <FaSpinner className="animate-spin" /> : <FaFilePdf />}
-                                                            </Button>
-                                                        </div>
-                                                    </div>
-                                                </form>
-                                            )}
+                                                    </form>
+                                                )
+                                            }
 
                                             {/* Report Submitted */}
-                                            {reportSubmitted && (
-                                                <div className="bg-green-50 rounded-xl p-6 border border-green-100 text-center">
-                                                    <FaCheckCircle className="text-4xl text-green-500 mx-auto mb-3" />
-                                                    <h3 className="font-bold text-green-800 mb-1">Report Finalized!</h3>
-                                                    <p className="text-sm text-green-600 mb-4">Patient has been notified.</p>
-                                                    <Button onClick={handleDownloadPDF} disabled={isGeneratingPdf} className="bg-red-500 hover:bg-red-600 text-white mx-auto">
-                                                        {isGeneratingPdf ? <><FaSpinner className="animate-spin mr-2" /> Generating...</> : <><FaFilePdf className="mr-2" /> Download PDF Report</>}
-                                                    </Button>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                            </GlassCard>
-                        </motion.div>
+                                            {
+                                                reportSubmitted && (
+                                                    <div className="bg-green-50 rounded-xl p-6 border border-green-100 text-center">
+                                                        <FaCheckCircle className="text-4xl text-green-500 mx-auto mb-3" />
+                                                        <h3 className="font-bold text-green-800 mb-1">Report Finalized!</h3>
+                                                        <p className="text-sm text-green-600 mb-4">Patient has been notified.</p>
+                                                        <Button onClick={handleDownloadPDF} disabled={isGeneratingPdf} className="bg-red-500 hover:bg-red-600 text-white mx-auto">
+                                                            {isGeneratingPdf ? <><FaSpinner className="animate-spin mr-2" /> Generating...</> : <><FaFilePdf className="mr-2" /> Download PDF Report</>}
+                                                        </Button>
+                                                    </div>
+                                                )
+                                            }
+                                        </div >
+                                    </div >
+                                </div >
+                            </GlassCard >
+                        </motion.div >
                     ) : (
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="h-full flex items-center justify-center">
                             <GlassCard className="p-12 text-center max-w-md">
@@ -801,9 +846,58 @@ const Diagnostics = () => {
                             </GlassCard>
                         </motion.div>
                     )}
-                </AnimatePresence>
-            </div>
-        </div>
+                </AnimatePresence >
+            </div >
+            {/* Feedback Modal */}
+            < AnimatePresence >
+                {showFeedbackModal && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setShowFeedbackModal(false)}
+                            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl p-6"
+                        >
+                            <h3 className="text-xl font-bold text-gray-800 mb-4">Flag AI Analysis</h3>
+                            <p className="text-gray-600 text-sm mb-4">
+                                Why is this AI analysis incorrect? Your feedback helps us improve the model.
+                            </p>
+                            <textarea
+                                value={feedbackReason}
+                                onChange={(e) => setFeedbackReason(e.target.value)}
+                                placeholder="Enter reason for disapproval..."
+                                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-red-500 focus:ring-2 focus:ring-red-200 outline-none transition-all resize-none mb-4"
+                                rows="4"
+                            />
+                            <div className="flex gap-3">
+                                <Button
+                                    variant="secondary"
+                                    className="flex-1"
+                                    onClick={() => setShowFeedbackModal(false)}
+                                    disabled={submittingFeedback}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    className="flex-1 bg-red-500 hover:bg-red-600 text-white"
+                                    onClick={handleDisapprove}
+                                    isLoading={submittingFeedback}
+                                >
+                                    Submit Feedback
+                                </Button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence >
+        </div >
     );
 };
 

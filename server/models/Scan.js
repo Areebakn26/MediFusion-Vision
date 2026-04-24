@@ -72,10 +72,10 @@ const Scan = sequelize.define('Scan', {
         type: DataTypes.JSONB, // Model output, confidence scores
     },
     ai_heatmap_url: {
-        type: DataTypes.STRING,
+        type: DataTypes.TEXT,
     },
     ai_explanation: {
-        type: DataTypes.TEXT,
+        type: DataTypes.JSONB,
     },
     processed_at: {
         type: DataTypes.DATE,

@@ -9,7 +9,7 @@ const sizeOf = require('image-size');
  */
 const validateFileType = async (buffer) => {
     try {
-        const type = await fileType.fromBuffer(buffer);
+        const type = await fileType.fileTypeFromBuffer(buffer);
 
         if (!type) {
             return { valid: false, message: 'Unknown file type' };

@@ -51,7 +51,7 @@ const UploadScan = () => {
             data.append('notes', formData.notes);
 
             // Phase 4: Upload to external endpoint
-            const response = await api.post('/scans/upload/external', data, {
+            const response = await api.post('/scans/external', data, {
                 headers: { 'Content-Type': 'multipart/form-data' },
                 onUploadProgress: (progressEvent) => {
                     const percentCompleted = Math.round(
@@ -246,18 +246,24 @@ const UploadScan = () => {
                         )}
 
                         {/* Action Buttons */}
-                        <div className="flex gap-4 pt-4">
+                        <div className="flex flex-col gap-2 pt-4">
                             <Button
                                 onClick={handleUpload}
                                 disabled={!file || !formData.scanType || !formData.bodyPart || uploading}
-                                className="flex-1"
+                                className="w-full"
                             >
-                                {uploading ? 'Processing...' : t('uploadAndAnalyze_btn', 'Upload & Analyze')}
+                                {uploading ? 'Processing...' : t('upload.submit', 'Submit Scan')}
                             </Button>
+                            {(!file || !formData.scanType || !formData.bodyPart) && !uploading && (
+                                <p className="text-xs text-red-500 text-center animate-pulse">
+                                    {t('upload.selectFileFirst', 'Please select a file and required fields to continue')}
+                                </p>
+                            )}
                             <Button
                                 variant="secondary"
                                 onClick={() => navigate('/patient/scans')}
                                 disabled={uploading}
+                                className="w-full"
                             >
                                 {t('cancel_btn', 'Cancel')}
                             </Button>

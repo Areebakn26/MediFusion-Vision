@@ -33,9 +33,11 @@ const registerUser = async (req, res) => {
     const { name, email, password, role, ...profileData } = req.body;
 
     try {
+        console.log(`[AUTH] Registration attempt for email: ${email}, role: ${role}`);
         // Check if user exists
         const userExists = await User.findOne({ where: { email } });
         if (userExists) {
+            console.warn(`[AUTH] User already exists: ${email}`);
             return res.status(400).json({ message: 'User already exists' });
         }
 
@@ -93,14 +95,19 @@ const loginUser = async (req, res) => {
     const { email, password } = req.body;
 
     try {
+        console.log(`[AUTH] Login attempt for email: ${email}`);
         const user = await User.findOne({ where: { email } });
 
         if (!user) {
+            console.warn(`[AUTH] User not found: ${email}`);
             return res.status(401).json({ message: 'Invalid email or password' });
         }
 
+        console.log(`[AUTH] User found: ${user.email}, role: ${user.role}`);
+
         // Check Account Lockout
         if (user.locked_until && user.locked_until > new Date()) {
+            console.warn(`[AUTH] Account locked for: ${email}`);
             const minutesLeft = Math.ceil((user.locked_until - new Date()) / 60000);
             return res.status(403).json({
                 message: `Account locked. Try again in ${minutesLeft} minutes.`
@@ -108,7 +115,10 @@ const loginUser = async (req, res) => {
         }
 
         // Check Password
-        if (await user.matchPassword(password)) {
+        const isMatch = await user.matchPassword(password);
+        console.log(`[AUTH] Password match result: ${isMatch}`);
+
+        if (isMatch) {
             // Reset login attempts on success
             user.login_attempts = 0;
             user.locked_until = null;

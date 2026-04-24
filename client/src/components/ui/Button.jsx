@@ -12,9 +12,9 @@ const Button = ({
     ...props
 }) => {
     const variants = {
-        primary: 'bg-gradient-to-r from-primary-blue to-primary-teal text-white shadow-md hover:shadow-lg',
-        secondary: 'bg-white/80 text-primary-blue border-2 border-primary-blue/20 hover:bg-white',
-        ghost: 'bg-transparent text-primary-blue hover:bg-primary-blue/10',
+        primary: 'bg-gradient-to-r from-secondary-600 to-primary-500 text-white shadow-md hover:shadow-lg',
+        secondary: 'bg-white/80 text-secondary-600 border-2 border-secondary-600/20 hover:bg-white',
+        ghost: 'bg-transparent text-secondary-600 hover:bg-secondary-600/10',
         danger: 'bg-red-500 text-white hover:bg-red-600',
     };
 
