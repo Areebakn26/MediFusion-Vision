@@ -1,5 +1,7 @@
 const { Op } = require('sequelize');
 const { sequelize, Feedback, ModelVersion, RetrainingJob, Scan, Doctor, User } = require('../models');
+const { calculateQualityScore } = require('../services/qualityChecker');
+const { checkConsensus }        = require('../services/consensusEngine');
 
 // ─── Helper: bump 'v1.2' → 'v1.3', 'v1.9' → 'v2.0' ──────────────────────
 const bumpVersion = (tag) => {
@@ -102,12 +104,27 @@ const submitFeedback = async (req, res) => {
             validation_status:    'pending',
         });
 
-        console.log(`[Feedback] Submitted — id: ${feedback.feedback_id}, scan: ${scan_id}, doctor: ${doctor.id}`);
+        // ── Quality Check ────────────────────────────────────────────────────
+        const { quality_score, validation_status } = calculateQualityScore(
+            feedback, doctor, scan.scan_type
+        );
+        await feedback.update({ quality_score, validation_status });
+
+        // ── Consensus Engine ─────────────────────────────────────────────────
+        const consensus = await checkConsensus(scan_id);
+
+        console.log(
+            `[Feedback] Submitted — id: ${feedback.feedback_id}, scan: ${scan_id},` +
+            ` doctor: ${doctor.id}, quality: ${quality_score}, status: ${validation_status}`
+        );
 
         res.status(201).json({
-            success: true,
-            feedback_id: feedback.feedback_id,
-            message: 'Feedback submitted successfully',
+            success:           true,
+            feedback_id:       feedback.feedback_id,
+            quality_score,
+            validation_status,
+            consensus,
+            message:           'Feedback submitted successfully',
         });
     } catch (error) {
         console.error('[Feedback] submitFeedback error:', error);

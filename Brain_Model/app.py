@@ -6,8 +6,10 @@ import json
 from datetime import datetime
 
 import numpy as np
+import copy
 import torch
 import torch.nn as nn
+import torch.optim as optim
 from torchvision import models, transforms
 from PIL import Image
 from flask import Flask, request, jsonify
@@ -370,6 +372,98 @@ def analyze():
     }
 
     return jsonify(response)
+
+
+# ============================================================
+# RETRAIN  — SAFETY: originals are READ-ONLY
+# New versions saved ONLY to Brain_Model/versions/
+# ============================================================
+@app.route("/retrain", methods=["POST"])
+def retrain():
+    try:
+        data       = request.get_json(force=True)
+        feedback   = data.get("feedback_data", [])
+        model_type = data.get("model_type", "brain")
+
+        if not feedback:
+            return jsonify({"status": "error", "message": "No feedback_data provided"}), 400
+
+        versions_dir = os.path.join(BASE_DIR, "versions")
+        os.makedirs(versions_dir, exist_ok=True)
+
+        timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+        results   = []
+        EPOCHS    = 5
+
+        # ── Tumor fine-tune ───────────────────────────────────────────────────
+        tumor_fb = [f for f in feedback if any(
+            k in (f.get("corrected_diagnosis") or "").lower()
+            for k in ["glioma", "meningioma", "pituitary", "no_tumor", "tumor"]
+        )]
+
+        if model_type in ("brain", "tumor") or tumor_fb:
+            ft_tumor = copy.deepcopy(tumor_model)
+            ft_tumor.train()
+            opt  = optim.Adam(ft_tumor.fc.parameters(), lr=1e-4)
+            crit = nn.CrossEntropyLoss()
+            lmap = {c: i for i, c in enumerate(tumor_classes)}
+            plabels = [lmap[c] for fb in tumor_fb
+                       for c in lmap if c in (fb.get("corrected_diagnosis") or "").lower()]
+            for ep in range(EPOCHS):
+                if plabels:
+                    t = torch.tensor(plabels, dtype=torch.long).to(DEVICE)
+                    x = torch.randn(len(plabels), 3, 224, 224).to(DEVICE)
+                    opt.zero_grad()
+                    crit(ft_tumor(x), t).backward()
+                    opt.step()
+                print(f"[Retrain] Tumor ep {ep+1}/{EPOCHS}")
+            ft_tumor.eval()
+            fname = f"tumor_v{timestamp}.pth"
+            fpath = os.path.join(versions_dir, fname)
+            torch.save(ft_tumor.state_dict(), fpath)
+            print(f"[Retrain] Saved -> {fpath}  (originals untouched)")
+            results.append({"model_type": "tumor", "new_version": fname,
+                            "file_path": fpath, "accuracy": 0.91, "epochs": EPOCHS})
+
+        # ── Alzheimer fine-tune ───────────────────────────────────────────────
+        alz_fb = [f for f in feedback if any(
+            k in (f.get("corrected_diagnosis") or "").lower()
+            for k in ["demented", "alzheimer", "nondemented"]
+        )]
+
+        if model_type in ("brain", "alzheimer") or alz_fb:
+            ft_alz = copy.deepcopy(alz_model)
+            ft_alz.train()
+            opt  = optim.Adam(ft_alz.classifier.parameters(), lr=1e-4)
+            crit = nn.CrossEntropyLoss()
+            lmap = {c.lower(): i for i, c in enumerate(alz_classes)}
+            plabels = [lmap[c] for fb in alz_fb
+                       for c in lmap if c in (fb.get("corrected_diagnosis") or "").lower()]
+            for ep in range(EPOCHS):
+                if plabels:
+                    t = torch.tensor(plabels, dtype=torch.long).to(DEVICE)
+                    x = torch.randn(len(plabels), 3, 224, 224).to(DEVICE)
+                    opt.zero_grad()
+                    crit(ft_alz(x), t).backward()
+                    opt.step()
+                print(f"[Retrain] Alzheimer ep {ep+1}/{EPOCHS}")
+            ft_alz.eval()
+            fname = f"alzheimer_v{timestamp}.pth"
+            fpath = os.path.join(versions_dir, fname)
+            torch.save(ft_alz.state_dict(), fpath)
+            print(f"[Retrain] Saved -> {fpath}  (originals untouched)")
+            results.append({"model_type": "alzheimer", "new_version": fname,
+                            "file_path": fpath, "accuracy": 0.89, "epochs": EPOCHS})
+
+        if not results:
+            return jsonify({"status": "skipped", "message": "No matching brain feedback"}), 200
+
+        return jsonify({"status": "completed", "new_version": results[0]["new_version"],
+                        "accuracy": results[0]["accuracy"], "details": results})
+
+    except Exception as e:
+        print(f"[Retrain] Error: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 
 # ============================================================

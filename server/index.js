@@ -7,6 +7,7 @@ const { Server } = require('socket.io');
 const { sequelize } = require('./models');
 const { ChatLog } = require('./models');
 const initCronJobs = require('./appointmentReminders');
+const { initRetrainingCron } = require('./jobs/retrainingTrigger');
 
 dotenv.config();
 
@@ -112,6 +113,7 @@ const startServer = async () => {
 
         // Initialize background jobs
         initCronJobs();
+        initRetrainingCron();
 
         server.listen(PORT, () => {
             console.log(`Server running on port ${PORT}`);
