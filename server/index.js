@@ -35,6 +35,7 @@ app.use('/api/consultation', require('./routes/consultationRoutes'));
 app.use('/api/payments', require('./routes/paymentRoutes'));
 app.use('/api/doctors', require('./routes/doctorRoutes'));
 app.use('/api/patient', require('./routes/patientSettingsRoutes'));
+app.use('/api/feedback', require('./routes/feedbackRoutes'));
 
 // Serve Uploads
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));

@@ -109,20 +109,7 @@ const getScans = async (req, res) => {
             const doctorProfile = await Doctor.findOne({ where: { user_id: req.user.id } });
             if (!doctorProfile) return res.status(404).json({ message: 'Doctor profile not found' });
 
-            // Option B: Restricted Access
-            const appts = await Appointment.findAll({
-                where: { doctor_id: doctorProfile.id },
-                attributes: ['patient_id']
-            });
-            const patientIds = Array.from(new Set(appts.map(a => a.patient_id)));
-
             scans = await Scan.findAll({
-                where: {
-                    [Op.or]: [
-                        { doctor_id: doctorProfile.id },
-                        { patient_id: { [Op.in]: patientIds } }
-                    ]
-                },
                 include: [
                     {
                         model: Patient,
@@ -203,17 +190,6 @@ const getScanById = async (req, res) => {
             } else if (req.user.role === 'doctor') {
                 const doctorProfile = await Doctor.findOne({ where: { user_id: req.user.id } });
                 if (!doctorProfile) return res.status(403).json({ message: 'Doctor profile not found' });
-
-                const hasAppt = await Appointment.findOne({
-                    where: {
-                        doctor_id: doctorProfile.id,
-                        patient_id: scan.patient_id
-                    }
-                });
-
-                if (scan.doctor_id !== doctorProfile.id && !hasAppt) {
-                    return res.status(403).json({ message: 'Access denied. You do not have an appointment with this patient.' });
-                }
             }
 
             const plainScan = scan.get({ plain: true });
@@ -321,7 +297,6 @@ const runAIAnalysis = async (req, res) => {
             return res.status(404).json({ message: 'Scan not found' });
         }
 
-        // Access Control (Option B)
         if (req.user.role === 'doctor') {
             const doctorProfile = await Doctor.findOne({ where: { user_id: req.user.id } });
             if (!doctorProfile) return res.status(403).json({ message: 'Doctor profile not found' });
@@ -329,12 +304,12 @@ const runAIAnalysis = async (req, res) => {
             const hasAppt = await Appointment.findOne({
                 where: {
                     doctor_id: doctorProfile.id,
-                    patient_id: scan.patient_id
+                    patient_id: scan.patient_id,
+                    status: 'confirmed'
                 }
             });
-
-            if (scan.doctor_id !== doctorProfile.id && !hasAppt) {
-                return res.status(403).json({ message: 'Access denied. You do not have an appointment with this patient.' });
+            if (!hasAppt) {
+                return res.status(403).json({ message: 'Access denied: No confirmed appointment with this patient' });
             }
         }
 
@@ -426,7 +401,6 @@ const runBrainAIAnalysis = async (req, res) => {
             return res.status(404).json({ message: 'Scan not found' });
         }
 
-        // Access Control (Option B)
         if (req.user.role === 'doctor') {
             const doctorProfile = await Doctor.findOne({ where: { user_id: req.user.id } });
             if (!doctorProfile) return res.status(403).json({ message: 'Doctor profile not found' });
@@ -434,12 +408,12 @@ const runBrainAIAnalysis = async (req, res) => {
             const hasAppt = await Appointment.findOne({
                 where: {
                     doctor_id: doctorProfile.id,
-                    patient_id: scan.patient_id
+                    patient_id: scan.patient_id,
+                    status: 'confirmed'
                 }
             });
-
-            if (scan.doctor_id !== doctorProfile.id && !hasAppt) {
-                return res.status(403).json({ message: 'Access denied. You do not have an appointment with this patient.' });
+            if (!hasAppt) {
+                return res.status(403).json({ message: 'Access denied: No confirmed appointment with this patient' });
             }
         }
 
@@ -715,21 +689,9 @@ const getAIAnalysis = async (req, res) => {
             return res.status(404).json({ message: 'Scan not found' });
         }
 
-        // Access Control (Option B)
         if (req.user.role === 'doctor') {
             const doctorProfile = await Doctor.findOne({ where: { user_id: req.user.id } });
             if (!doctorProfile) return res.status(403).json({ message: 'Doctor profile not found' });
-
-            const hasAppt = await Appointment.findOne({
-                where: {
-                    doctor_id: doctorProfile.id,
-                    patient_id: scan.patient_id
-                }
-            });
-
-            if (scan.doctor_id !== doctorProfile.id && !hasAppt) {
-                return res.status(403).json({ message: 'Access denied. You do not have an appointment with this patient.' });
-            }
         }
 
         res.json({

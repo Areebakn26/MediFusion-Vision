@@ -33,6 +33,9 @@ const AdminLayout = () => {
                     <Link to="/admin/reports" className="block px-4 py-3 rounded hover:bg-gray-800 transition-colors">
                         Reports & Analytics
                     </Link>
+                    <Link to="/admin/feedback" className="block px-4 py-3 rounded hover:bg-gray-800 transition-colors">
+                        AI Feedback Loop
+                    </Link>
                 </nav>
                 <div className="p-4 border-t border-gray-800">
                     <button onClick={handleLogout} className="w-full text-left px-4 py-2 text-red-400 hover:text-red-300">

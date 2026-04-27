@@ -54,6 +54,7 @@ import Doctors from './pages/admin/Doctors';
 import SystemContent from './pages/admin/SystemContent';
 import MedicalAIMgmt from './pages/admin/MedicalAIMgmt';
 import FinanceSupport from './pages/admin/FinanceSupport';
+import FeedbackDashboard from './pages/admin/FeedbackDashboard';
 
 function App() {
   return (
@@ -61,7 +62,7 @@ function App() {
       <LanguageProvider>
         <Router>
           <AccessibilityTools />
-          <Toaster position="top-right" />
+          <Toaster position="top-right" toastOptions={{ style: { zIndex: 9999 } }} containerStyle={{ zIndex: 9999 }} />
           <Routes>
             {/* Public Routes */}
             <Route path="/" element={<Home />} />
@@ -132,6 +133,7 @@ function App() {
               <Route path="system" element={<SystemContent />} />
               <Route path="medical-ai" element={<MedicalAIMgmt />} />
               <Route path="finance" element={<FinanceSupport />} />
+              <Route path="feedback" element={<FeedbackDashboard />} />
             </Route>
 
             <Route path="/access-denied" element={<AccessDenied />} />

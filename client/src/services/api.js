@@ -128,4 +128,11 @@ export const getPrescription = (appointmentId) => API.get(`/consultation/${appoi
 export const savePrescription = (appointmentId, data) => API.post(`/consultation/${appointmentId}/prescription`, data);
 export const getConsultationSummary = (appointmentId) => API.get(`/consultation/${appointmentId}/summary`);
 
+// ==================== FEEDBACK LOOP APIs ====================
+export const submitFeedback = (data) => API.post('/feedback', data);
+export const getFeedback = (params) => API.get('/feedback', { params });
+export const getFeedbackStats = () => API.get('/feedback/stats');
+export const triggerRetrain = (data) => API.post('/feedback/trigger-retrain', data);
+export const getRetrainJobs = () => API.get('/feedback/retrain-jobs');
+
 export default API;
