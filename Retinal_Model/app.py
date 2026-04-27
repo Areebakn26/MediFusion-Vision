@@ -30,7 +30,7 @@ CORS(app)  # React frontend se connection allow karo
 # ══════════════════════════════════════════════════════════════
 # CONFIG
 # ══════════════════════════════════════════════════════════════
-MODEL_PATH = os.path.join(os.path.dirname(__file__), "efficientnetb3-Eye Disease-91.47.h5")
+MODEL_PATH = os.path.join(os.path.dirname(__file__), "efficientnetb3-Eye Disease-91.47.keras")
 CLASS_DICT  = {0: "cataract", 1: "diabetic_retinopathy", 2: "glaucoma", 3: "normal"}
 CONV_LAYER  = "block6a_expand_conv"
 IMG_SIZE    = (224, 224)
