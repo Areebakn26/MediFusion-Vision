@@ -1,0 +1,96 @@
+name: medifusion_vision
+description: AI-powered medical diagnostic platform for patients and doctors.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # State Management
+  flutter_bloc: ^8.1.4
+  equatable: ^2.0.5
+  bloc: ^8.1.3
+
+  # Networking
+  dio: ^5.4.3+1
+  pretty_dio_logger: ^1.3.1
+
+  # Local Storage
+  flutter_secure_storage: ^9.0.0
+  shared_preferences: ^2.2.3
+
+  # Navigation
+  go_router: ^13.2.1
+
+  # Dependency Injection
+  get_it: ^7.6.7
+
+  # UI / Components
+  cached_network_image: ^3.3.1
+  flutter_svg: ^2.0.10+1
+  shimmer: ^3.0.0
+  lottie: ^3.1.0
+  photo_view: ^0.14.0
+  fl_chart: ^0.67.0
+  intl: ^0.20.2
+  dotted_border: ^2.1.0
+  pinput: ^5.0.0
+  smooth_page_indicator: ^1.1.0
+
+  # File Handling
+  file_picker: ^8.0.3
+  image_picker: ^1.1.2
+  path_provider: ^2.1.3
+  open_file: ^3.3.2
+  dio_smart_retry: ^6.0.0
+
+  # Video Consultation
+  jitsi_meet_flutter_sdk: ^10.1.0
+
+  # Payments
+  flutter_stripe: ^10.1.1
+
+  # Localization
+  easy_localization: ^3.0.7
+
+  # Socket for real-time updates
+  socket_io_client: ^2.0.3+1
+
+  # Utilities
+  jwt_decoder: ^2.0.1
+  connectivity_plus: ^6.0.3
+  permission_handler: ^11.3.1
+  url_launcher: ^6.2.6
+  flutter_rating_bar: ^4.0.1
+  timeago: ^3.6.1
+  image: ^4.1.7
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+  bloc_test: ^9.1.7
+  mocktail: ^1.0.3
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/translations/
+
+  # fonts:  # Uncomment and add Poppins .ttf files to assets/fonts/ to enable custom font
+  #   - family: Poppins
+  #     fonts:
+  #       - asset: assets/fonts/Poppins-Regular.ttf
+  #       - asset: assets/fonts/Poppins-Medium.ttf
+  #         weight: 500
+  #       - asset: assets/fonts/Poppins-SemiBold.ttf
+  #         weight: 600
+  #       - asset: assets/fonts/Poppins-Bold.ttf
+  #         weight: 700
