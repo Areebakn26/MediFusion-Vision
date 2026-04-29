@@ -56,7 +56,7 @@ const FeedbackDashboard = () => {
                 limit: PAGE_SIZE,
                 offset: page * PAGE_SIZE,
             });
-            setFeedback(data.rows || data);
+            setFeedback(data.data || []);
         } catch {
             toast.error('Failed to load feedback entries');
         } finally {
