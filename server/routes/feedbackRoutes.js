@@ -6,6 +6,7 @@ const {
     getFeedbackStats,
     triggerRetrain,
     getRetrainJobs,
+    getScanRepository,
 } = require('../controllers/feedbackController');
 const { protect, requireRole } = require('../middleware/authMiddleware');
 const { registerNewVersion, deployModel, rollbackModel } = require('../services/modelDeployer');
@@ -22,6 +23,9 @@ router.post('/trigger-retrain', protect, requireRole(['admin']), triggerRetrain)
 
 // Admin: list all retraining job history
 router.get('/retrain-jobs', protect, requireRole(['admin']), getRetrainJobs);
+
+// Admin: grouped scan view with flag counts and majority diagnosis
+router.get('/scan-repository', protect, requireRole(['admin']), getScanRepository);
 
 // Admin: list all feedback with filters (?status=&model_type=&limit=&offset=)
 router.get('/', protect, requireRole(['admin']), getFeedback);

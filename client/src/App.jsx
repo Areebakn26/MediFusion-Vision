@@ -55,6 +55,7 @@ import SystemContent from './pages/admin/SystemContent';
 import MedicalAIMgmt from './pages/admin/MedicalAIMgmt';
 import FinanceSupport from './pages/admin/FinanceSupport';
 import FeedbackDashboard from './pages/admin/FeedbackDashboard';
+import ScanRepository from './pages/admin/ScanRepository';
 
 function App() {
   return (
@@ -134,6 +135,7 @@ function App() {
               <Route path="medical-ai" element={<MedicalAIMgmt />} />
               <Route path="finance" element={<FinanceSupport />} />
               <Route path="feedback" element={<FeedbackDashboard />} />
+              <Route path="scan-repository" element={<ScanRepository />} />
             </Route>
 
             <Route path="/access-denied" element={<AccessDenied />} />

@@ -12,7 +12,7 @@ const ModelVersion = sequelize.define('ModelVersion', {
         allowNull: false,
     },
     version_tag: {
-        type: DataTypes.STRING(20),
+        type: DataTypes.STRING(100),
         allowNull: false,
     },
     file_path: {

@@ -134,5 +134,6 @@ export const getFeedback = (params) => API.get('/feedback', { params });
 export const getFeedbackStats = () => API.get('/feedback/stats');
 export const triggerRetrain = (data) => API.post('/feedback/trigger-retrain', data);
 export const getRetrainJobs = () => API.get('/feedback/retrain-jobs');
+export const getScanRepository = () => API.get('/feedback/scan-repository');
 
 export default API;

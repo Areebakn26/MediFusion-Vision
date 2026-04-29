@@ -183,10 +183,15 @@ const FeedbackDashboard = () => {
                                             <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${JOB_STATUS_COLORS[job.status] || 'bg-gray-100 text-gray-600'}`}>
                                                 {job.status}
                                             </span>
+                                            {job.status === 'failed' && job.failure_reason && (
+                                                <p className="text-xs text-red-500 mt-1 max-w-xs">{job.failure_reason}</p>
+                                            )}
                                         </td>
                                         <td className="py-2 pr-4 text-gray-600">
-                                            {job.old_model_version && job.new_model_version
-                                                ? `${job.old_model_version} → ${job.new_model_version}`
+                                            {job.new_model_version
+                                                ? job.old_model_version
+                                                    ? `${job.old_model_version} → ${job.new_model_version}`
+                                                    : `— → ${job.new_model_version}`
                                                 : '—'}
                                         </td>
                                         <td className="py-2 text-gray-600">{job.feedback_count_used ?? '—'}</td>

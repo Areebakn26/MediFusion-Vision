@@ -10,7 +10,7 @@
 
 const cron     = require('node-cron');
 const axios    = require('axios');
-const { sequelize, Feedback, ModelVersion, RetrainingJob } = require('../models');
+const { sequelize, Feedback, ModelVersion, RetrainingJob, Scan } = require('../models');
 
 // ─── Mirror of the helper in feedbackController ───────────────────────────────
 const shouldTriggerRetraining = async () => {
@@ -65,6 +65,37 @@ const shouldTriggerRetraining = async () => {
     return { should_retrain: reasons.length > 0, retrain_reasons: reasons };
 };
 
+// ─── Scan deduplication via majority vote ────────────────────────────────────
+const deduplicateByScan = (feedbackRows) => {
+    const scanMap = new Map();
+
+    for (const row of feedbackRows) {
+        const key = row.scan_id ?? `no-scan-${row.feedback_id}`;
+        if (!scanMap.has(key)) scanMap.set(key, []);
+        scanMap.get(key).push(row);
+    }
+
+    const deduped = [];
+    for (const rows of scanMap.values()) {
+        if (rows.length === 1) {
+            deduped.push(rows[0]);
+            continue;
+        }
+        // Tally votes per diagnosis
+        const tally = {};
+        for (const row of rows) {
+            const d = row.corrected_diagnosis;
+            tally[d] = (tally[d] || 0) + 1;
+        }
+        const majority = Object.entries(tally).sort((a, b) => b[1] - a[1])[0][0];
+        // Use highest-quality row as base, override diagnosis with majority label
+        const base = [...rows].sort((a, b) => (b.quality_score ?? 0) - (a.quality_score ?? 0))[0];
+        deduped.push({ ...base, corrected_diagnosis: majority });
+    }
+
+    return deduped;
+};
+
 // ─── Core job logic ───────────────────────────────────────────────────────────
 const runRetrainingCheck = async () => {
     console.log('[RetrainingTrigger] Running daily check…');
@@ -84,19 +115,24 @@ const runRetrainingCheck = async () => {
         raw:   true,
     });
 
+    const totalFeedbackCount = validatedFeedback.length;
+    const uniqueFeedback     = deduplicateByScan(validatedFeedback);
+    console.log(
+        `[RetrainingTrigger] Deduplication: ${totalFeedbackCount} feedback records → ` +
+        `${uniqueFeedback.length} unique scans`
+    );
+
     const activeModel = await ModelVersion.findOne({
         where: { is_active: true },
         order: [['createdAt', 'DESC']],
     });
-
-    const validatedCount = validatedFeedback.length;
 
     // Create retraining job record
     const job = await RetrainingJob.create({
         triggered_by:        'cron',
         trigger_reason:      retrain_reasons.join(' | '),
         status:              'running',
-        feedback_count_used: validatedCount,
+        feedback_count_used: uniqueFeedback.length,
         old_model_version:   activeModel?.version_tag || null,
         started_at:          new Date(),
     });
@@ -107,10 +143,24 @@ const runRetrainingCheck = async () => {
     const brainPort   = process.env.BRAIN_MODEL_PORT   || 5003;
     const retinalPort = process.env.RETINAL_MODEL_PORT || 5002;
 
-    const brainFeedback   = validatedFeedback.filter((f) => f.model_version?.includes('brain') ||
-                                                            f.model_version?.includes('tumor') ||
-                                                            f.model_version?.includes('alzheimer'));
-    const retinalFeedback = validatedFeedback.filter((f) => f.model_version?.includes('retinal'));
+    const scans = await Scan.findAll({
+        where: { id: uniqueFeedback.map((f) => f.scan_id).filter(Boolean) },
+        attributes: ['id', 'scan_type'],
+        raw: true,
+    });
+    const scanTypeMap = Object.fromEntries(scans.map((s) => [s.id, s.scan_type]));
+
+    const brainFeedback = uniqueFeedback.filter((f) => {
+        const t = scanTypeMap[f.scan_id];
+        return t === 'mri_brain'
+            || f.model_version?.includes('brain')
+            || f.model_version?.includes('tumor')
+            || f.model_version?.includes('alzheimer');
+    });
+    const retinalFeedback = uniqueFeedback.filter((f) => {
+        const t = scanTypeMap[f.scan_id];
+        return t === 'retinal' || f.model_version?.includes('retinal');
+    });
 
     let newVersion = null;
     let anySuccess = false;
@@ -153,6 +203,18 @@ const runRetrainingCheck = async () => {
         completed_at:      new Date(),
         new_model_version: newVersion,
     });
+
+    // Mark all feedback used in this run as consumed
+    if (anySuccess) {
+        const usedScanIds = uniqueFeedback.map((f) => f.scan_id).filter(Boolean);
+        if (usedScanIds.length > 0) {
+            await Feedback.update(
+                { validation_status: 'used_in_training' },
+                { where: { scan_id: usedScanIds, validation_status: 'validated' } }
+            );
+            console.log(`[RetrainingTrigger] Marked ${usedScanIds.length} scans as used_in_training`);
+        }
+    }
 
     console.log(
         `[RetrainingTrigger] Job ${job.job_id} ${anySuccess ? 'completed' : 'failed'}` +

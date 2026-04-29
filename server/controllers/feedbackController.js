@@ -1,7 +1,28 @@
 const { Op } = require('sequelize');
-const { sequelize, Feedback, ModelVersion, RetrainingJob, Scan, Doctor, User } = require('../models');
+const axios  = require('axios');
+const { sequelize, Feedback, ModelVersion, RetrainingJob, Scan, Doctor, User, Patient } = require('../models');
 const { calculateQualityScore } = require('../services/qualityChecker');
 const { checkConsensus }        = require('../services/consensusEngine');
+
+// Deduplicate feedback by scan_id using majority vote on corrected_diagnosis
+const deduplicateByScan = (feedbackRows) => {
+    const scanMap = new Map();
+    for (const row of feedbackRows) {
+        const key = row.scan_id ?? `no-scan-${row.feedback_id}`;
+        if (!scanMap.has(key)) scanMap.set(key, []);
+        scanMap.get(key).push(row);
+    }
+    const deduped = [];
+    for (const rows of scanMap.values()) {
+        if (rows.length === 1) { deduped.push(rows[0]); continue; }
+        const tally = {};
+        for (const r of rows) tally[r.corrected_diagnosis] = (tally[r.corrected_diagnosis] || 0) + 1;
+        const majority = Object.entries(tally).sort((a, b) => b[1] - a[1])[0][0];
+        const base = [...rows].sort((a, b) => (b.quality_score ?? 0) - (a.quality_score ?? 0))[0];
+        deduped.push({ ...base, corrected_diagnosis: majority });
+    }
+    return deduped;
+};
 
 // ─── Helper: bump 'v1.2' → 'v1.3', 'v1.9' → 'v2.0' ──────────────────────
 const bumpVersion = (tag) => {
@@ -240,44 +261,128 @@ const triggerRetrain = async (req, res) => {
     try {
         const { reason } = req.body;
 
-        const [activeModel, validatedCount] = await Promise.all([
-            ModelVersion.findOne({ where: { is_active: true }, order: [['createdAt', 'DESC']] }),
-            Feedback.count({ where: { validation_status: 'validated' } }),
-        ]);
+        const validatedFeedback = await Feedback.findAll({
+            where: { validation_status: 'validated' },
+            raw:   true,
+        });
+
+        const uniqueFeedback = deduplicateByScan(validatedFeedback);
+
+        if (uniqueFeedback.length === 0) {
+            return res.status(400).json({
+                message: 'No validated feedback available for retraining. Submit and validate doctor corrections first.',
+            });
+        }
+
+        const activeModel = await ModelVersion.findOne({
+            where: { is_active: true },
+            order: [['createdAt', 'DESC']],
+        });
 
         const job = await RetrainingJob.create({
             triggered_by:        'manual',
             trigger_reason:      reason || 'Manual admin trigger',
             status:              'running',
-            feedback_count_used: validatedCount,
+            feedback_count_used: uniqueFeedback.length,
             old_model_version:   activeModel?.version_tag || null,
             started_at:          new Date(),
         });
 
-        console.log(`[Retrain] Job ${job.job_id} started — using ${validatedCount} validated items`);
+        console.log(`[Retrain] Job ${job.job_id} started — ${uniqueFeedback.length} unique scans (${validatedFeedback.length} total records)`);
 
-        // Respond immediately so the admin sees the job started
+        // Respond immediately so the admin UI isn't blocked (Python can take minutes)
         res.status(201).json({
             job_id:  job.job_id,
             status:  'running',
-            message: `Retraining job started. Using ${validatedCount} validated feedback items.`,
+            message: `Retraining job started. Using ${uniqueFeedback.length} unique scans.`,
         });
 
-        // Simulate 3-second retraining
-        setTimeout(async () => {
-            try {
-                const newVersion = bumpVersion(activeModel?.version_tag);
-                await job.update({
-                    status:            'completed',
-                    completed_at:      new Date(),
-                    new_model_version: newVersion,
-                });
-                console.log(`[Retrain] Job ${job.job_id} completed — new version: ${newVersion}`);
-            } catch (e) {
-                console.error('[Retrain] Failed to complete job:', e.message);
-                await job.update({ status: 'failed' }).catch(() => {});
+        // Run Python calls in background after response is sent
+        (async () => {
+            const brainPort   = process.env.BRAIN_MODEL_PORT   || 5003;
+            const retinalPort = process.env.RETINAL_MODEL_PORT || 5002;
+
+            const scans = await Scan.findAll({
+                where: { id: uniqueFeedback.map((f) => f.scan_id).filter(Boolean) },
+                attributes: ['id', 'scan_type'],
+                raw: true,
+            });
+            const scanTypeMap = Object.fromEntries(scans.map((s) => [s.id, s.scan_type]));
+
+            const brainFeedback = uniqueFeedback.filter((f) => {
+                const t = scanTypeMap[f.scan_id];
+                return t === 'mri_brain'
+                    || f.model_version?.includes('brain')
+                    || f.model_version?.includes('tumor')
+                    || f.model_version?.includes('alzheimer');
+            });
+            const retinalFeedback = uniqueFeedback.filter((f) => {
+                const t = scanTypeMap[f.scan_id];
+                return t === 'retinal' || f.model_version?.includes('retinal');
+            });
+
+            let newVersion    = null;
+            let anySuccess    = false;
+            const failReasons = [];
+
+            if (brainFeedback.length > 0) {
+                try {
+                    const response = await axios.post(
+                        `http://localhost:${brainPort}/retrain`,
+                        { feedback_data: brainFeedback, model_type: 'brain' },
+                        { timeout: 300_000 }
+                    );
+                    console.log('[Retrain] Brain model response:', response.data);
+                    newVersion = response.data?.new_version || newVersion;
+                    anySuccess = true;
+                } catch (err) {
+                    console.error('[Retrain] Brain model retrain failed:', err.message);
+                    failReasons.push(`Brain model: ${err.code === 'ECONNREFUSED' ? 'service not running on port ' + brainPort : err.message}`);
+                }
             }
-        }, 3000);
+
+            if (retinalFeedback.length > 0) {
+                try {
+                    const response = await axios.post(
+                        `http://localhost:${retinalPort}/retrain`,
+                        { feedback_data: retinalFeedback, model_type: 'retinal' },
+                        { timeout: 300_000 }
+                    );
+                    console.log('[Retrain] Retinal model response:', response.data);
+                    newVersion = response.data?.new_version || newVersion;
+                    anySuccess = true;
+                } catch (err) {
+                    console.error('[Retrain] Retinal model retrain failed:', err.message);
+                    failReasons.push(`Retinal model: ${err.code === 'ECONNREFUSED' ? 'service not running on port ' + retinalPort : err.message}`);
+                }
+            }
+
+            await job.update({
+                status:            anySuccess ? 'completed' : 'failed',
+                completed_at:      new Date(),
+                new_model_version: newVersion,
+                failure_reason:    anySuccess ? null : failReasons.join(' | ') || null,
+            });
+
+            if (anySuccess) {
+                const usedScanIds = uniqueFeedback.map((f) => f.scan_id).filter(Boolean);
+                if (usedScanIds.length > 0) {
+                    await Feedback.update(
+                        { validation_status: 'used_in_training' },
+                        { where: { scan_id: usedScanIds, validation_status: 'validated' } }
+                    );
+                    console.log(`[Retrain] Marked ${usedScanIds.length} scans as used_in_training`);
+                }
+            }
+
+            console.log(
+                `[Retrain] Job ${job.job_id} ${anySuccess ? 'completed' : 'failed'}` +
+                (newVersion ? ` — new version: ${newVersion}` : '')
+            );
+        })().catch((err) => {
+            console.error('[Retrain] Background retraining error:', err.message);
+            job.update({ status: 'failed' }).catch(() => {});
+        });
 
     } catch (error) {
         console.error('[Feedback] triggerRetrain error:', error);
@@ -302,10 +407,82 @@ const getRetrainJobs = async (req, res) => {
     }
 };
 
+// ══════════════════════════════════════════════════════════════
+// @desc    Admin — list unique scans with flag counts & majority diagnosis
+// @route   GET /api/feedback/scan-repository
+// @access  Private (Admin)
+// ══════════════════════════════════════════════════════════════
+const getScanRepository = async (req, res) => {
+    try {
+        const allFeedback = await Feedback.findAll({
+            include: [{
+                model: Scan,
+                attributes: ['id', 'scan_type'],
+                include: [{
+                    model: Patient,
+                    attributes: ['id'],
+                    include: [{ model: User, attributes: ['name'] }],
+                }],
+            }],
+            order: [['createdAt', 'DESC']],
+        });
+
+        const scanMap = new Map();
+        for (const fb of allFeedback) {
+            const sid = fb.scan_id;
+            if (!scanMap.has(sid)) {
+                scanMap.set(sid, {
+                    scan_id:          sid,
+                    scan_type:        fb.Scan?.scan_type || 'unknown',
+                    patient_name:     fb.Scan?.Patient?.User?.name || 'Unknown Patient',
+                    flags:            [],
+                    latest_flag_date: null,
+                });
+            }
+            const entry = scanMap.get(sid);
+            entry.flags.push({
+                corrected_diagnosis: fb.corrected_diagnosis,
+                validation_status:   fb.validation_status,
+            });
+            if (!entry.latest_flag_date || new Date(fb.createdAt) > new Date(entry.latest_flag_date))
+                entry.latest_flag_date = fb.createdAt;
+        }
+
+        const result = [];
+        for (const entry of scanMap.values()) {
+            const tally = {};
+            for (const f of entry.flags)
+                tally[f.corrected_diagnosis] = (tally[f.corrected_diagnosis] || 0) + 1;
+            const majority_diagnosis = Object.entries(tally).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
+
+            const statuses = entry.flags.map(f => f.validation_status);
+            const status = statuses.every(s => s === 'validated') ? 'all validated'
+                         : statuses.every(s => s === 'rejected')  ? 'all rejected'
+                         : 'some pending';
+
+            result.push({
+                scan_id:          entry.scan_id,
+                patient_name:     entry.patient_name,
+                scan_type:        entry.scan_type,
+                total_flags:      entry.flags.length,
+                majority_diagnosis,
+                latest_flag_date: entry.latest_flag_date,
+                status,
+            });
+        }
+
+        res.json({ total: result.length, data: result });
+    } catch (error) {
+        console.error('[Feedback] getScanRepository error:', error);
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};
+
 module.exports = {
     submitFeedback,
     getFeedback,
     getFeedbackStats,
     triggerRetrain,
     getRetrainJobs,
+    getScanRepository,
 };

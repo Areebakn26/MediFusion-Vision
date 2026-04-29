@@ -24,11 +24,11 @@ const RetrainingJob = sequelize.define('RetrainingJob', {
         allowNull: true,
     },
     old_model_version: {
-        type: DataTypes.STRING(20),
+        type: DataTypes.STRING(100),
         allowNull: true,
     },
     new_model_version: {
-        type: DataTypes.STRING(20),
+        type: DataTypes.STRING(100),
         allowNull: true,
     },
     started_at: {
@@ -37,6 +37,10 @@ const RetrainingJob = sequelize.define('RetrainingJob', {
     },
     completed_at: {
         type: DataTypes.DATE,
+        allowNull: true,
+    },
+    failure_reason: {
+        type: DataTypes.STRING(500),
         allowNull: true,
     },
 }, {
