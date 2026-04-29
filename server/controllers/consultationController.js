@@ -1,4 +1,5 @@
-const { ChatLog, ConsultationNote, Prescription, User, Appointment } = require('../models');
+const { ChatLog, ConsultationNote, Prescription, User, Appointment, Doctor } = require('../models');
+const { createNotification } = require('../utils/notificationHelper');
 
 // @desc    Get chat history for an appointment
 // @route   GET /api/consultation/:appointmentId/chat
@@ -211,11 +212,47 @@ const getConsultationSummary = async (req, res) => {
     }
 };
 
+// @desc    Patient notifies doctor they have joined the consultation
+// @route   POST /api/consultation/:appointmentId/patient-joined
+// @access  Private (Patient)
+const notifyPatientJoined = async (req, res) => {
+    try {
+        const appointment = await Appointment.findByPk(req.params.appointmentId, {
+            include: [{ model: Doctor, attributes: ['user_id'] }]
+        });
+
+        if (!appointment) {
+            return res.status(404).json({ message: 'Appointment not found' });
+        }
+
+        const doctorUserId = appointment.Doctor?.user_id;
+        if (!doctorUserId) {
+            return res.status(404).json({ message: 'Doctor not found' });
+        }
+
+        const patientName = req.user.name || 'Your patient';
+
+        await createNotification(
+            doctorUserId,
+            'info',
+            'Patient Joined Consultation',
+            `${patientName} has joined the virtual consultation. Please join now.`,
+            { appointmentId: appointment.id }
+        );
+
+        res.json({ message: 'Doctor notified' });
+    } catch (error) {
+        console.error('Notify Patient Joined Error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
 module.exports = {
     getChatHistory,
     getNotes,
     addNote,
     getPrescription,
     savePrescription,
-    getConsultationSummary
+    getConsultationSummary,
+    notifyPatientJoined
 };

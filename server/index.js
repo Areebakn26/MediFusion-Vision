@@ -35,6 +35,7 @@ app.use('/api/consultation', require('./routes/consultationRoutes'));
 app.use('/api/payments', require('./routes/paymentRoutes'));
 app.use('/api/doctors', require('./routes/doctorRoutes'));
 app.use('/api/patient', require('./routes/patientSettingsRoutes'));
+app.use('/api/notifications', require('./routes/notificationRoutes'));
 
 // Serve Uploads
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -90,6 +91,16 @@ io.on('connection', (socket) => {
             ...data,
             createdAt: new Date().toISOString()
         });
+    });
+
+    // Patient joined consultation — broadcast to room so doctor gets real-time alert
+    socket.on('patient_joined', (data) => {
+        socket.to(data.room).emit('patient_joined_consultation', {
+            patientName: data.patientName,
+            appointmentId: data.appointmentId,
+            message: `${data.patientName || 'Patient'} has joined the consultation`
+        });
+        console.log(`[Socket] Patient ${data.patientName} joined room ${data.room}`);
     });
 
     socket.on('disconnect', () => {

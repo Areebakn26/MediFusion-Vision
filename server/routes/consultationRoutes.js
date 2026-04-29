@@ -6,7 +6,8 @@ const {
     addNote,
     getPrescription,
     savePrescription,
-    getConsultationSummary
+    getConsultationSummary,
+    notifyPatientJoined
 } = require('../controllers/consultationController');
 const { protect, requireRole } = require('../middleware/authMiddleware');
 
@@ -23,5 +24,8 @@ router.post('/:appointmentId/prescription', protect, requireRole(['doctor']), sa
 
 // Full consultation summary
 router.get('/:appointmentId/summary', protect, getConsultationSummary);
+
+// Patient joined — notify doctor
+router.post('/:appointmentId/patient-joined', protect, notifyPatientJoined);
 
 module.exports = router;

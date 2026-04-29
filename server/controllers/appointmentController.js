@@ -1,4 +1,5 @@
 const { Appointment, Doctor, Patient, User, Payment } = require('../models');
+const { createNotification } = require('../utils/notificationHelper');
 const { sendAppointmentConfirmation, sendDoctorAppointmentNotification, sendCancellationNotification, sendRescheduleNotification } = require('../utils/emailService');
 const { Op } = require('sequelize');
 const Stripe = require('stripe');
@@ -23,10 +24,11 @@ const parseTime = (timeStr) => {
 // @access  Private (Patient)
 const bookAppointment = async (req, res) => {
     const { doctorId, date, timeSlot, type, notes } = req.body;
+    console.log('📥 BOOKING PAYLOAD:', JSON.stringify({ doctorId, date, timeSlot, type, notes, patientUserId: req.user?.id }));
 
     try {
         // 1. Get Doctor Profile to determine Timezone
-        const doctorProfile = await Doctor.findOne({ where: { user_id: doctorId } });
+        const doctorProfile = await Doctor.findByPk(doctorId);
         if (!doctorProfile) {
             return res.status(404).json({ message: 'Doctor not found.' });
         }
@@ -108,25 +110,35 @@ const bookAppointment = async (req, res) => {
         // 10. Verify Doctor Working Hours (if availability is set)
         if (doctorProfile.working_hours) {
             const dayName = appointmentDate.toLocaleDateString('en-US', { weekday: 'long' });
-            let daySchedule = doctorProfile.working_hours[dayName];
+            const daySchedule = doctorProfile.working_hours[dayName];
 
-            // If new nested structure is present, pick the requested type
-            if (daySchedule && daySchedule[type]) {
-                daySchedule = daySchedule[type];
+            if (!daySchedule) {
+                return res.status(400).json({ message: `Doctor is not available on ${dayName}s.` });
             }
 
-            if (!daySchedule || !daySchedule.start) {
-                return res.status(400).json({ message: `Doctor is not available for ${type} appointments on ${dayName}s.` });
-            }
+            // Slot-based availability (mobile app stores specific slots)
+            if (daySchedule.slots && Array.isArray(daySchedule.slots)) {
+                if (!daySchedule.slots.includes(timeSlot)) {
+                    return res.status(400).json({ message: `The selected time is not in the doctor's available slots for ${dayName}.` });
+                }
+            } else {
+                // Legacy range-based check
+                let rangeSchedule = daySchedule;
+                if (rangeSchedule[type]) rangeSchedule = rangeSchedule[type];
 
-            const slotTime = parseTime(timeSlot);
-            const startTime = parseTime(daySchedule.start);
-            const endTime = parseTime(daySchedule.end);
+                if (!rangeSchedule || !rangeSchedule.start) {
+                    return res.status(400).json({ message: `Doctor is not available for ${type} appointments on ${dayName}s.` });
+                }
 
-            if (slotTime < startTime || slotTime >= endTime) {
-                return res.status(400).json({
-                    message: `Selected time is outside doctor's ${type} working hours (${daySchedule.start} - ${daySchedule.end}).`
-                });
+                const slotTime = parseTime(timeSlot);
+                const startTime = parseTime(rangeSchedule.start);
+                const endTime = parseTime(rangeSchedule.end);
+
+                if (slotTime < startTime || slotTime >= endTime) {
+                    return res.status(400).json({
+                        message: `Selected time is outside doctor's working hours (${rangeSchedule.start} - ${rangeSchedule.end}).`
+                    });
+                }
             }
         }
 
@@ -155,6 +167,16 @@ const bookAppointment = async (req, res) => {
             await sendAppointmentConfirmation(patientUser.email, patientUser.name, doctorUser.name, date, timeSlot, type, meetingLink);
             await sendDoctorAppointmentNotification(doctorUser.email, doctorUser.name, patientUser.name, date, timeSlot, type);
         }
+
+1        // In-app notifications
+        await createNotification(doctorId, 'appointment_booked',
+            'New Appointment Booked',
+            `${patientUser?.name || 'A patient'} booked a ${type} appointment on ${date} at ${timeSlot}.`,
+            { appointmentId: appointment.id });
+        await createNotification(req.user.id, 'appointment_booked',
+            'Appointment Confirmed',
+            `Your ${type} appointment with Dr. ${doctorUser?.name || ''} on ${date} at ${timeSlot} is confirmed.`,
+            { appointmentId: appointment.id });
 
         res.status(201).json(appointment);
     } catch (error) {
@@ -203,20 +225,24 @@ const getAppointments = async (req, res) => {
             });
         }
 
-        // Flatten structure for frontend convenience if needed, or handle in frontend
-        // Frontend expects: app.doctor.name, app.patient.name
         const formattedAppointments = appointments.map(app => {
             const plainApp = app.get({ plain: true });
+            const doctorUser = plainApp.Doctor?.User;
+            const patientUser = plainApp.Patient?.User;
+            if (!doctorUser) console.warn(`⚠️ Appointment ${plainApp.id}: Doctor.User is null (doctor_id: ${plainApp.doctor_id})`);
             return {
                 ...plainApp,
-                _id: plainApp.id, // Frontend uses _id
-                patient: plainApp.Patient ? { ...plainApp.Patient, name: plainApp.Patient.User.name, email: plainApp.Patient.User.email } : null,
-                doctor: plainApp.Doctor ? { ...plainApp.Doctor, name: plainApp.Doctor.User.name, email: plainApp.Doctor.User.email } : null,
-                timeSlot: plainApp.time_slot, // Frontend uses camelCase
+                _id: plainApp.id,
+                patient: plainApp.Patient ? { ...plainApp.Patient, name: patientUser?.name ?? 'Unknown', email: patientUser?.email ?? '' } : null,
+                doctor: plainApp.Doctor ? { ...plainApp.Doctor, name: doctorUser?.name ?? 'Unknown Doctor', email: doctorUser?.email ?? '' } : null,
+                timeSlot: plainApp.time_slot,
                 notes: plainApp.reason
             };
         });
 
+        if (formattedAppointments.length > 0) {
+            console.log('🔍 Sample appointment doctor field:', JSON.stringify(formattedAppointments[0].doctor));
+        }
         res.json(formattedAppointments);
     } catch (error) {
         console.error("Get Appointments Error:", error);
@@ -314,13 +340,19 @@ const checkAvailability = async (req, res) => {
         // 6. Check working hours
         if (doctorProfile.working_hours) {
             const dayName = appointmentDate.toLocaleDateString('en-US', { weekday: 'long' });
-
-            // For checkAvailability where type isn't passed (legacy), check both
             const rawSchedule = doctorProfile.working_hours[dayName];
-            let isAvailable = false;
 
-            if (rawSchedule) {
-                // If it's a legacy flat schedule OR we manually check physical/virtual
+            if (!rawSchedule) {
+                return res.json({ available: false, message: `Doctor is not available on ${dayName}.` });
+            }
+
+            // Slot-based availability
+            if (rawSchedule.slots && Array.isArray(rawSchedule.slots)) {
+                if (!rawSchedule.slots.includes(timeSlot)) {
+                    return res.json({ available: false, message: 'This time slot is not in the doctor\'s available slots.' });
+                }
+            } else {
+                // Legacy range-based check
                 const checkSlot = (schedule) => {
                     if (!schedule || !schedule.start) return false;
                     const slotTime = parseTime(timeSlot);
@@ -329,18 +361,13 @@ const checkAvailability = async (req, res) => {
                     return slotTime >= startTime && slotTime < endTime;
                 };
 
-                if (rawSchedule.start) {
-                    isAvailable = checkSlot(rawSchedule);
-                } else {
-                    isAvailable = checkSlot(rawSchedule.physical) || checkSlot(rawSchedule.virtual);
-                }
-            }
+                const isAvailable = rawSchedule.start
+                    ? checkSlot(rawSchedule)
+                    : checkSlot(rawSchedule.physical) || checkSlot(rawSchedule.virtual);
 
-            if (!isAvailable) {
-                return res.json({
-                    available: false,
-                    message: `Outside working hours.`
-                });
+                if (!isAvailable) {
+                    return res.json({ available: false, message: 'Outside working hours.' });
+                }
             }
         }
 
@@ -506,14 +533,13 @@ const rescheduleAppointment = async (req, res) => {
         appointment.reschedule_count = (appointment.reschedule_count || 0) + 1;
         await appointment.save();
 
-        // Send reschedule notification email to both parties
+        // Send reschedule notification email + in-app notifications
         if (appointment.Patient && appointment.Patient.User) {
             const patientUser = appointment.Patient.User;
             const doctorUser = appointment.Doctor && appointment.Doctor.User ? appointment.Doctor.User : null;
             const doctorName = doctorUser ? doctorUser.name : 'Unknown';
             const doctorEmail = doctorUser ? doctorUser.email : null;
 
-            // Try to construct meeting link if virtual
             const meetingLink = appointment.type === 'virtual'
                 ? `${process.env.CLIENT_URL || 'http://localhost:5173'}/patient/consultation/${appointment.id}`
                 : null;
@@ -530,6 +556,20 @@ const rescheduleAppointment = async (req, res) => {
                 appointment.type,
                 meetingLink
             );
+
+            // In-app: notify patient (they rescheduled, so confirm new time)
+            await createNotification(patientUser.id, 'appointment_rescheduled',
+                'Appointment Rescheduled',
+                `Your appointment with Dr. ${doctorName} has been rescheduled to ${newDate} at ${newTimeSlot}.`,
+                { appointmentId: id, oldDate, oldTimeSlot, newDate, newTimeSlot });
+
+            // In-app: notify doctor
+            if (doctorUser) {
+                await createNotification(doctorUser.id, 'appointment_rescheduled',
+                    'Appointment Rescheduled',
+                    `${patientUser.name} rescheduled their appointment from ${oldDate} ${oldTimeSlot} to ${newDate} at ${newTimeSlot}.`,
+                    { appointmentId: id, oldDate, oldTimeSlot, newDate, newTimeSlot });
+            }
         }
 
         console.log(`[NOTIFICATION] Appointment ${id} rescheduled to ${newDate} ${newTimeSlot}`);
@@ -650,7 +690,7 @@ const cancelAppointment = async (req, res) => {
         appointment.cancellation_reason = reason || 'No reason provided';
         await appointment.save();
 
-        // Send cancellation notification email
+        // Send cancellation notification email + in-app notifications
         if (appointment.Patient && appointment.Patient.User) {
             const patientUser = appointment.Patient.User;
             const doctorUser = appointment.Doctor && appointment.Doctor.User ? appointment.Doctor.User : null;
@@ -658,6 +698,25 @@ const cancelAppointment = async (req, res) => {
             const doctorEmail = doctorUser ? doctorUser.email : null;
             const refundData = { refundAmount, refundPercentage };
             await sendCancellationNotification(patientUser.email, doctorEmail, patientUser.name, doctorName, appointment.date, appointment.time_slot, refundData);
+
+            const cancelledBy = appointment.cancelled_by;
+            const apptInfo = `${appointment.date} at ${appointment.time_slot}`;
+
+            if (cancelledBy === 'patient') {
+                // Notify doctor
+                if (doctorUser) {
+                    await createNotification(doctorUser.id, 'appointment_cancelled',
+                        'Appointment Cancelled',
+                        `${patientUser.name} cancelled their appointment on ${apptInfo}.`,
+                        { appointmentId: id });
+                }
+            } else {
+                // Doctor or admin cancelled — notify patient
+                await createNotification(patientUser.id, 'appointment_cancelled',
+                    'Appointment Cancelled',
+                    `Your appointment with Dr. ${doctorName} on ${apptInfo} has been cancelled.${refundAmount > 0 ? ` Refund: PKR ${refundAmount} (${refundPercentage}%).` : ''}`,
+                    { appointmentId: id, refundAmount, refundPercentage });
+            }
         }
 
         console.log(`[NOTIFICATION] Appointment ${id} cancelled`);
@@ -700,15 +759,32 @@ const getAvailableSlots = async (req, res) => {
         let workingHoursStart = 0;
         let workingHoursEnd = 0;
 
+        const isToday = (reqDate.format('YYYY-MM-DD') === moment().tz(timezone).format('YYYY-MM-DD'));
+        const currentMinutes = isToday ? (moment().tz(timezone).hours() * 60 + moment().tz(timezone).minutes() + 30) : 0;
+
         if (doctorProfile.working_hours) {
-            // Fix undefined appointmentDate error
             const dateObj = new Date(reqDate.format('YYYY-MM-DD'));
             const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'long' });
             const rawSchedule = doctorProfile.working_hours[dayName];
 
             if (!rawSchedule) return res.json({ availableSlots: [] });
 
-            // Handle both flat {start, end} and nested {physical: {start, end}, virtual: {start, end}}
+            // Slot-based availability (doctor selected specific time slots)
+            if (rawSchedule.slots && Array.isArray(rawSchedule.slots)) {
+                const existingAppts = await Appointment.findAll({
+                    where: { doctor_id: doctorId, date: date, status: { [Op.ne]: 'cancelled' } },
+                    attributes: ['time_slot']
+                });
+                const bookedSet = new Set(existingAppts.map(a => a.time_slot));
+                const slots = rawSchedule.slots.filter(slot => {
+                    if (bookedSet.has(slot)) return false;
+                    if (isToday && parseTime(slot) <= currentMinutes) return false;
+                    return true;
+                });
+                return res.json({ availableSlots: slots });
+            }
+
+            // Legacy range-based: compute start/end
             if (rawSchedule.start) {
                 workingHoursStart = parseTime(rawSchedule.start);
                 workingHoursEnd = parseTime(rawSchedule.end);
@@ -729,9 +805,6 @@ const getAvailableSlots = async (req, res) => {
 
         if (workingHoursStart === Infinity) return res.json({ availableSlots: [] });
 
-        const isToday = (reqDate.format('YYYY-MM-DD') === moment().tz(timezone).format('YYYY-MM-DD'));
-        const currentMinutes = isToday ? (moment().tz(timezone).hours() * 60 + moment().tz(timezone).minutes() + 30) : 0;
-
         // Fetch existing appointments
         const existingAppointments = await Appointment.findAll({
             where: { doctor_id: doctorId, date: date, status: { [Op.ne]: 'cancelled' } },
@@ -740,7 +813,7 @@ const getAvailableSlots = async (req, res) => {
 
         const bookedSlots = existingAppointments.map(a => parseTime(a.time_slot));
 
-        // Generate thirty-minute slots
+        // Generate thirty-minute slots within the range
         const allTimeSlots = [
             "09:00 AM", "09:30 AM", "10:00 AM", "10:30 AM", "11:00 AM", "11:30 AM",
             "12:00 PM", "12:30 PM", "01:00 PM", "01:30 PM", "02:00 PM", "02:30 PM",
@@ -839,9 +912,52 @@ const markNoShow = async (req, res) => {
     }
 };
 
+// @desc    Get a single appointment by ID
+// @route   GET /api/appointments/:id
+// @access  Private
+const getAppointmentById = async (req, res) => {
+    try {
+        const appointment = await Appointment.findByPk(req.params.id, {
+            include: [
+                { model: Doctor, include: [{ model: User, attributes: ['id', 'name', 'email'] }] },
+                { model: Patient, include: [{ model: User, attributes: ['id', 'name', 'email'] }] },
+            ]
+        });
+
+        if (!appointment) {
+            return res.status(404).json({ message: 'Appointment not found' });
+        }
+
+        const plain = appointment.get({ plain: true });
+        const doctorUser = plain.Doctor?.User;
+        const patientUser = plain.Patient?.User;
+
+        res.json({
+            ...plain,
+            _id: plain.id,
+            doctor: plain.Doctor ? {
+                ...plain.Doctor,
+                name: doctorUser?.name ?? 'Unknown Doctor',
+                email: doctorUser?.email ?? '',
+                user_id: doctorUser?.id,
+            } : null,
+            patient: plain.Patient ? {
+                ...plain.Patient,
+                name: patientUser?.name ?? 'Unknown',
+                email: patientUser?.email ?? '',
+            } : null,
+            timeSlot: plain.time_slot,
+        });
+    } catch (error) {
+        console.error('Get Appointment By ID Error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
 module.exports = {
     bookAppointment,
     getAppointments,
+    getAppointmentById,
     updateAppointmentStatus,
     checkAvailability,
     rescheduleAppointment,

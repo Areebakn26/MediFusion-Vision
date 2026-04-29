@@ -1,4 +1,5 @@
 const { Scan, Report, Patient, User, Doctor } = require('../models');
+const { createNotification } = require('../utils/notificationHelper');
 const multer = require('multer');
 const path = require('path');
 const { Op } = require('sequelize');
@@ -6,7 +7,7 @@ const { Op } = require('sequelize');
 // Multer Config
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        cb(null, 'server/uploads/');
+        cb(null, 'uploads/');
     },
     filename: function (req, file, cb) {
         cb(null, `${Date.now()}-${file.originalname}`);
@@ -243,6 +244,20 @@ const createReport = async (req, res) => {
         scan.status = 'verified';
         scan.doctor_comments = notes;
         await scan.save();
+
+        // Notify the patient that their report is ready
+        const patientProfile = await Patient.findByPk(scan.patient_id, {
+            include: [{ model: User, attributes: ['id', 'name'] }]
+        });
+        if (patientProfile && patientProfile.User) {
+            await createNotification(
+                patientProfile.User.id,
+                'report_ready',
+                'Your Report is Ready',
+                'Your medical scan report has been reviewed and finalized by the doctor. Tap to view your results.',
+                { scanId: scan.id, reportId: report.id }
+            );
+        }
 
         res.status(201).json(report);
     } catch (error) {

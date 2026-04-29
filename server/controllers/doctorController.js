@@ -48,7 +48,7 @@ const getDoctorById = async (req, res) => {
             include: [
                 {
                     model: User,
-                    attributes: ['name', 'email', 'phone']
+                    attributes: ['id', 'name', 'email', 'phone']
                 }
             ]
         });

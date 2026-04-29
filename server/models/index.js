@@ -15,6 +15,7 @@ const AIFeedback = require('./AIFeedback');
 const ChatLog = require('./ChatLog');
 const Report = require('./Report');
 const ConsultationNote = require('./ConsultationNote');
+const Notification = require('./Notification');
 
 // Define Associations
 
@@ -88,6 +89,10 @@ Report.belongsTo(Doctor, { foreignKey: 'doctor_id' });
 Patient.hasMany(Report, { foreignKey: 'patient_id' });
 Report.belongsTo(Patient, { foreignKey: 'patient_id' });
 
+// Notifications
+User.hasMany(Notification, { foreignKey: 'user_id', onDelete: 'CASCADE' });
+Notification.belongsTo(User, { foreignKey: 'user_id' });
+
 module.exports = {
     sequelize,
     User,
@@ -102,5 +107,6 @@ module.exports = {
     AIFeedback,
     ChatLog,
     Report,
-    ConsultationNote
+    ConsultationNote,
+    Notification,
 };
