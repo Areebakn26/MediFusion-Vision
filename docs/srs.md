@@ -469,9 +469,8 @@ FE-1.9: Admin can perform database backups and audit trails
 FE-2.1: AI note-taker record doctor-patient conversation during appointments, including 
 symptoms and history.  
 FE-2.2: AI generates consultation notes and observations, which doctors can review and edit. 
-FE-2.3: Patients and doctors can view complete consultation history in chronological order, with 
-AI-recorded and doctor-verified notes saved securely. 
-FE-2.4: Patient profile shows scan history, past reports, and AI-generated doctor notes.  
+FE-2.3: Patients can view their finalized diagnostic reports and associated patient-friendly summaries in chronological order. Doctor-verified consultation notes are accessible only to the treating doctor and administrators.
+FE-2.4: Patient profile shows scan history and finalized diagnostic reports; internal clinical notes and AI-generated drafts are restricted to authorized medical personnel.
 
 1.7.3 Module 3: Appointment & Schedule Management   
 

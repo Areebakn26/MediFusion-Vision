@@ -1,5 +1,7 @@
 import { Link, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import NotificationBell from '../components/NotificationBell';
+
 
 const AdminLayout = () => {
     const { logout } = useAuth();
@@ -46,6 +48,7 @@ const AdminLayout = () => {
                 <header className="bg-white shadow-sm p-4 flex justify-between items-center">
                     <h2 className="text-xl font-semibold text-gray-800">Admin Portal</h2>
                     <div className="flex items-center space-x-4">
+                        <NotificationBell />
                         <span className="text-gray-600">Administrator</span>
                         <div className="h-8 w-8 bg-gray-300 rounded-full"></div>
                     </div>

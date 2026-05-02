@@ -95,19 +95,19 @@ const MyAppointments = () => {
         return date;
     };
 
-    // Check if appointment is joinable (within 15 mins before and up to 30 mins after)
+    // Allow joining any confirmed virtual appointment on today's date
     const isJoinable = (apt) => {
         if (apt.status !== 'confirmed' && apt.status !== 'pending') return false;
         if (apt.type !== 'virtual') return false;
 
+        const aptDateStr = new Date(apt.date).toLocaleDateString('en-CA');
+        const todayStr = currentTime.toLocaleDateString('en-CA');
+        if (aptDateStr === todayStr) return true;
+
         const appointmentTime = parseTimeSlot(apt.date, apt.timeSlot || apt.time_slot);
         if (!appointmentTime) return false;
-
-        const now = currentTime;
         const fifteenMinsBefore = new Date(appointmentTime.getTime() - 15 * 60 * 1000);
-        const thirtyMinsAfter = new Date(appointmentTime.getTime() + 30 * 60 * 1000);
-
-        return now >= fifteenMinsBefore && now <= thirtyMinsAfter;
+        return currentTime >= fifteenMinsBefore;
     };
 
     // Check if appointment is upcoming (can still cancel/reschedule)

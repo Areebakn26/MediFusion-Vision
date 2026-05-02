@@ -18,14 +18,19 @@ const AccessibilityTools = () => {
     const [isListening, setIsListening] = useState(false);
     const recognitionRef = useRef(null);
 
-    // Sync from AuthContext
+    // Sync from AuthContext or localStorage fallback (for non-patient roles)
     useEffect(() => {
-        if (user && user.accessibilitySettings) {
-            setHighContrast(!!user.accessibilitySettings.highContrast);
-            setLargeText(!!user.accessibilitySettings.largeText);
-            setTtsEnabled(!!user.accessibilitySettings.ttsEnabled);
-            setVoiceCommands(!!user.accessibilitySettings.voiceCommands);
-        }
+        const settings = user?.accessibilitySettings
+            || JSON.parse(localStorage.getItem('accessibilitySettings') || '{}');
+        setHighContrast(!!settings.highContrast);
+        setLargeText(!!settings.largeText);
+        setTtsEnabled(!!settings.ttsEnabled);
+        setVoiceCommands(!!settings.voiceCommands);
+        // Re-apply classes on mount/login
+        if (settings.highContrast) document.body.classList.add('high-contrast');
+        else document.body.classList.remove('high-contrast');
+        if (settings.largeText) document.body.classList.add('large-text');
+        else document.body.classList.remove('large-text');
     }, [user]);
 
     // Handle Toggles
@@ -54,10 +59,7 @@ const AccessibilityTools = () => {
 
         if (user && user.role === 'patient') {
             try {
-                // Background Sync
                 await updatePatientSettings({ accessibilitySettings: apiPayload });
-
-                // Keep Context strictly synced to prevent jumpy UI renders 
                 updateUser({
                     accessibilitySettings: {
                         ...(user.accessibilitySettings || {}),
@@ -67,7 +69,10 @@ const AccessibilityTools = () => {
             } catch (err) {
                 console.error("Failed to update accessibility settings", err);
             }
-        } else if (user && user.role !== 'patient') {
+        } else if (user) {
+            // Persist to localStorage for doctor/admin roles
+            const stored = JSON.parse(localStorage.getItem('accessibilitySettings') || '{}');
+            localStorage.setItem('accessibilitySettings', JSON.stringify({ ...stored, ...apiPayload }));
             updateUser({
                 accessibilitySettings: {
                     ...(user.accessibilitySettings || {}),

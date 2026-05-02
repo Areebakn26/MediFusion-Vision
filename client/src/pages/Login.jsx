@@ -56,7 +56,12 @@ const Login = () => {
             if (err.response?.status === 423) {
                 setError('Account locked due to too many failed attempts. Please try again in 15 minutes.');
             } else if (err.response?.status === 403) {
-                setError('Please verify your email before logging in. Check your inbox for the verification link.');
+                const msg = err.response?.data?.message || '';
+                if (msg.toLowerCase().includes('lock')) {
+                    setError(msg);
+                } else {
+                    setError('Please verify your email before logging in. Check your inbox for the verification link.');
+                }
             } else {
                 setError(err.response?.data?.message || 'Invalid email or password');
             }

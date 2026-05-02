@@ -8,3 +8,4 @@ export { default as Dropdown, DropdownItem } from './Dropdown';
 export { default as Calendar } from './Calendar';
 export { default as FileDropzone } from './FileDropzone';
 export { default as Chart } from './Chart';
+export { TabGroup, TabList, Tab, TabPanels, TabPanel } from './Tabs';

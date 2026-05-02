@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const API = axios.create({
-    baseURL: 'http://localhost:5000/api',
+    baseURL: `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api`,
 });
 
 // Request interceptor - Add auth token
@@ -33,7 +33,7 @@ API.interceptors.response.use(
             if (refreshToken) {
                 try {
                     console.log(`[API] Sending refresh token...`);
-                    const { data } = await axios.post('http://localhost:5000/api/auth/refresh-token', {
+                    const { data } = await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/refresh-token`, {
                         token: refreshToken
                     });
                     console.log(`[API] Token refresh SUCCESS. New token received.`);
@@ -80,10 +80,14 @@ export const getDoctorById = (id) => API.get(`/doctors/${id}`);
 
 // ==================== ADMIN APIs ====================
 export const getAdminStats = () => API.get('/admin/stats');
+export const getAdminAnalytics = () => API.get('/admin/analytics');
+export const getAdminAIStats = () => API.get('/admin/ai-stats');
 export const getAllUsers = () => API.get('/admin/users');
 export const getAllDoctors = () => API.get('/admin/doctors');
 export const getPendingDoctors = () => API.get('/admin/doctors?status=pending');
 export const verifyDoctor = (id, status, reason) => API.put(`/admin/doctor/${id}/verify`, { status, reason });
+export const blockUser = (id, block) => API.put(`/admin/users/${id}/block`, { block });
+export const deleteAdminUser = (id) => API.delete(`/admin/users/${id}`);
 
 // ==================== APPOINTMENT APIs ====================
 export const bookAppointment = (data) => API.post('/appointments', data);
@@ -92,10 +96,10 @@ export const getAppointmentById = (id) => API.get(`/appointments/${id}`);
 export const updateAppointmentStatus = (id, data) => API.put(`/appointments/${id}/status`, data);
 export const rescheduleAppointment = (id, data) => API.put(`/appointments/${id}/reschedule`, data);
 export const cancelAppointment = (id, reason) => API.delete(`/appointments/${id}`, { data: { reason } });
-export const checkAvailability = (doctorId, date, timeSlot) =>
-    API.get('/appointments/check-availability', { params: { doctorId, date, timeSlot } });
-export const getAvailableSlots = (doctorId, date) =>
-    API.get('/appointments/available-slots', { params: { doctorId, date } });
+export const checkAvailability = (doctorId, date, timeSlot, type) =>
+    API.get('/appointments/check-availability', { params: { doctorId, date, timeSlot, type } });
+export const getAvailableSlots = (doctorId, date, type) =>
+    API.get('/appointments/available-slots', { params: { doctorId, date, type } });
 
 // ==================== PAYMENT APIs ====================
 export const createPaymentIntent = (data) => API.post('/payments/create-intent', data);
@@ -127,5 +131,25 @@ export const addConsultationNote = (appointmentId, data) => API.post(`/consultat
 export const getPrescription = (appointmentId) => API.get(`/consultation/${appointmentId}/prescription`);
 export const savePrescription = (appointmentId, data) => API.post(`/consultation/${appointmentId}/prescription`, data);
 export const getConsultationSummary = (appointmentId) => API.get(`/consultation/${appointmentId}/summary`);
+
+export const uploadConsultationAudio = (appointmentId, audioBlob) => {
+    const formData = new FormData();
+    formData.append('audio', audioBlob, `consult-${appointmentId}.webm`);
+    return API.post(`/consultation/${appointmentId}/upload-audio`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 120000
+    });
+};
+
+export const finalizeConsultationNotes = (appointmentId, data) =>
+    API.patch(`/consultation/${appointmentId}/finalize-notes`, data);
+
+export const getConsultationPatientSummary = (appointmentId) =>
+    API.get(`/consultation/${appointmentId}/patient-summary`);
+
+// ==================== NOTIFICATION APIs ====================
+export const getNotifications = () => API.get('/notifications');
+export const markNotificationRead = (id) => API.put(`/notifications/${id}/read`);
+export const markAllNotificationsRead = () => API.put('/notifications/read-all');
 
 export default API;

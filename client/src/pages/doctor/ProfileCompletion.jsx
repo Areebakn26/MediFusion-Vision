@@ -6,6 +6,7 @@ import { getMe, updateProfile } from '../../services/api';
 import { GlassCard, Button } from '../../components/ui';
 import LanguageSwitcher from '../../components/LanguageSwitcher';
 import { FaCheckCircle, FaUserMd, FaBriefcaseMedical, FaClock } from 'react-icons/fa';
+import { toast } from 'react-hot-toast';
 
 const ProfileCompletion = () => {
     const { user, updateUser } = useAuth();
@@ -42,6 +43,8 @@ const ProfileCompletion = () => {
         'General Physician', 'ENT Specialist', 'Oncologist', 'Pulmonologist',
         'Gastroenterologist', 'Nephrologist', 'Endocrinologist', 'Other'
     ];
+
+    const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
     useEffect(() => {
         fetchProfile();
@@ -108,6 +111,21 @@ const ProfileCompletion = () => {
                 }
             }
         }));
+    };
+
+    const applyMondayToWeekdays = () => {
+        const mondaySchedule = formData.workingHours.Monday;
+        setFormData(prev => {
+            const newHours = { ...prev.workingHours };
+            ['Tuesday', 'Wednesday', 'Thursday', 'Friday'].forEach(day => {
+                newHours[day] = {
+                    physical: { ...mondaySchedule.physical },
+                    virtual: { ...mondaySchedule.virtual }
+                };
+            });
+            return { ...prev, workingHours: newHours };
+        });
+        toast?.success?.("Monday's schedule applied to all weekdays!");
     };
 
     const handleSubmit = async (e) => {
@@ -415,12 +433,21 @@ const ProfileCompletion = () => {
                             <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
                                 <FaClock className="text-blue-600" /> Availability & Schedule
                             </h2>
-                            <p className="text-sm text-gray-600 mb-6">
-                                Set your availability for physical and virtual consultations separately. Leave time blank if you are not available for that type on a given day.
-                            </p>
+                            <div className="flex justify-between items-start mb-6">
+                                <p className="text-sm text-gray-600">
+                                    Set your availability for physical and virtual consultations separately. Leave time blank if you are not available for that type on a given day.
+                                </p>
+                                <button
+                                    type="button"
+                                    onClick={applyMondayToWeekdays}
+                                    className="text-xs font-semibold bg-blue-100 text-blue-700 px-3 py-2 rounded hover:bg-blue-200 transition-colors shrink-0 ml-4"
+                                >
+                                    Copy Monday to all Weekdays
+                                </button>
+                            </div>
 
                             <div className="space-y-6">
-                                {Object.keys(formData.workingHours).map((day) => (
+                                {DAYS_OF_WEEK.map((day) => (
                                     <div key={day} className="grid grid-cols-1 md:grid-cols-5 gap-4 items-center bg-gray-50 p-4 rounded-xl border border-gray-200">
                                         <div className="font-semibold text-gray-700 md:col-span-1">{day}</div>
 

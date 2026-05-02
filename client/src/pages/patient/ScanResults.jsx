@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../services/api';
 import { GlassCard, Button, Badge } from '../../components/ui';
 import {
@@ -17,7 +17,10 @@ import {
     FaSpinner,
     FaPlay,
     FaStop,
-    FaVolumeUp
+    FaVolumeUp,
+    FaInfoCircle,
+    FaMicroscope,
+    FaCertificate
 } from 'react-icons/fa';
 import { useAuth } from '../../context/AuthContext';
 import { speakText, stopSpeaking } from '../../utils/tts';
@@ -36,48 +39,12 @@ const ScanResults = () => {
         fetchScanResults();
     }, [id]);
 
-    useEffect(() => {
-        const handleVoiceCommand = () => {
-            if (scan?.ai_prediction?.primary?.condition) {
-                speakText(`AI Analysis Result: ${scan.ai_prediction.primary.condition}. ${scan.ai_explanation || ''}`);
-                setIsSpeakingAI(true);
-            }
-        };
-        window.addEventListener('voice-read-report', handleVoiceCommand);
-        return () => window.removeEventListener('voice-read-report', handleVoiceCommand);
-    }, [scan]);
-
-    const handleAITTS = () => {
-        if (isSpeakingAI) {
-            stopSpeaking();
-            setIsSpeakingAI(false);
-        } else {
-            speakText(`AI Analysis Result: ${aiResult.primary.condition}. Confidence is ${(confidence * 100).toFixed(0)} percent. ${scan.ai_explanation || ''}`);
-            setIsSpeakingAI(true);
-            setIsSpeakingDoc(false);
-        }
-    };
-
-    const handleDocTTS = () => {
-        const report = scan?.Reports?.[0];
-        if (isSpeakingDoc) {
-            stopSpeaking();
-            setIsSpeakingDoc(false);
-        } else {
-            speakText(`Doctor's Diagnosis: ${report.diagnosis}. Clinical Notes: ${report.doctor_notes || ''}`);
-            setIsSpeakingDoc(true);
-            setIsSpeakingAI(false);
-        }
-    };
-
     const fetchScanResults = async () => {
         try {
             const { data } = await api.get(`/scans/${id}`);
             setScan(data);
         } catch (error) {
             console.error("Error fetching scan:", error);
-            // Use mock data for demonstration
-            setScan(getMockScan());
         } finally {
             setLoading(false);
         }
@@ -89,22 +56,109 @@ const ScanResults = () => {
         file_url: '/uploads/sample-scan.jpg',
         status: 'verified',
         ai_prediction: {
-            primary: { condition: 'Early-stage Alzheimer\'s Disease', confidence: 0.87 },
-            differential: [
-                { condition: 'Early-stage Alzheimer\'s Disease', confidence: 0.87 },
-                { condition: 'Mild Cognitive Impairment', confidence: 0.08 },
-                { condition: 'Normal Age-related Changes', confidence: 0.05 }
-            ]
+            scan_type: 'brain_mri',
+            tumor: { prediction: 'No Tumor Detected', confidence: 0.98 },
+            alzheimer: { prediction: 'Mild Demented', confidence: 0.82 }
         },
-        ai_explanation: 'AI analysis detected bilateral hippocampal atrophy and enlarged temporal horns of lateral ventricles. Medial temporal lobe volume reduction is consistent with early neurodegenerative changes. No acute infarct or mass lesion identified.',
+        ai_explanation: {
+            tumor_finding: 'No mass effect or midline shift. Brain tissue shows no abnormal growth.',
+            alz_finding: 'Moderate hippocampal atrophy and ventricular enlargement observed.',
+            clinical_note: 'Findings consistent with early-stage neurodegeneration.'
+        },
         Reports: [{
             diagnosis: 'Early-stage Alzheimer\'s Disease (Probable)',
-            doctor_notes: 'MRI findings show characteristic patterns of early Alzheimer\'s disease including hippocampal volume loss and ventricular enlargement. Recommend neuropsychological testing, PET scan for confirmation, and consultation with neurology. Consider starting cognitive enhancement therapy. Schedule follow-up MRI in 6 months to monitor progression.',
-            Doctor: { User: { name: 'Dr. Ahmed Neurologist' } },
-            finalized_at: new Date().toISOString()
+            doctor_notes: 'MRI findings show characteristic patterns of early Alzheimer\'s disease including hippocampal volume loss and ventricular enlargement. Recommend neuropsychological testing.',
+            recommendations: 'Consult with neurology, start cognitive enhancement therapy, follow-up MRI in 6 months.',
+            report_patient_friendly: 'The scan shows signs of early memory-related changes (Alzheimer\'s), but no tumors were found.',
+            Doctor: { 
+                User: { name: 'Dr. Ahmed Neurologist' },
+                specialization: 'Neurology Specialist',
+                pmdc_number: 'PMDC-12345-N'
+            },
+            finalized: true,
+            finalized_at: new Date().toISOString(),
+            final_report: '/uploads/reports/sample.pdf'
         }],
         createdAt: new Date().toISOString()
     });
+
+    const parseAIResult = (scan) => {
+        const aiPred = scan?.ai_prediction;
+        if (!aiPred) return { condition: 'Analysis Pending', confidence: 0 };
+
+        // Brain MRI format
+        if (aiPred.scan_type === 'brain_mri') {
+            const tumorConf = aiPred.tumor?.confidence || 0;
+            const alzConf = aiPred.alzheimer?.confidence || 0;
+            
+            if (tumorConf > alzConf && aiPred.tumor?.prediction !== 'No Tumor Detected') {
+                return { 
+                    condition: aiPred.tumor?.prediction || 'No Tumor Detected', 
+                    confidence: tumorConf 
+                };
+            } else {
+                return { 
+                    condition: aiPred.alzheimer?.prediction || 'Normal Brain', 
+                    confidence: alzConf 
+                };
+            }
+        }
+
+        // Retinal format
+        if (aiPred.class_name) {
+            return { 
+                condition: aiPred.class_name, 
+                confidence: aiPred.confidence 
+            };
+        }
+
+        return { 
+            condition: aiPred.primary?.condition || 'Analysis Complete', 
+            confidence: aiPred.primary?.confidence || 0 
+        };
+    };
+
+    const renderAIExplanation = (explanation) => {
+        if (!explanation) return null;
+        
+        let data = explanation;
+        if (typeof explanation === 'string') {
+            try {
+                data = JSON.parse(explanation);
+            } catch (e) {
+                return <p className="text-sm text-gray-700">{explanation}</p>;
+            }
+        }
+
+        return (
+            <div className="space-y-4">
+                {data.tumor_finding && (
+                    <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Tumor Analysis</p>
+                        <p className="text-sm text-gray-800 leading-relaxed">{data.tumor_finding}</p>
+                    </div>
+                )}
+                {data.alz_finding && (
+                    <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Alzheimer's Analysis</p>
+                        <p className="text-sm text-gray-800 leading-relaxed">{data.alz_finding}</p>
+                    </div>
+                )}
+                {data.why_prediction && (
+                    <div className="bg-blue-50/50 p-3 rounded-lg border border-blue-100/50">
+                        <p className="text-[10px] font-bold text-blue-400 uppercase tracking-wider mb-1">Clinical Pattern Detected</p>
+                        <p className="text-sm text-blue-900 leading-relaxed">{data.why_prediction}</p>
+                    </div>
+                )}
+                {data.clinical_note && (
+                    <div className="bg-amber-50 p-3 rounded-lg border border-amber-100">
+                        <p className="text-[10px] font-bold text-amber-600 uppercase tracking-wider mb-1">Diagnostic Note</p>
+                        <p className="text-sm text-amber-900 italic leading-relaxed">{data.clinical_note}</p>
+                    </div>
+                )}
+            </div>
+        );
+    };
 
     const getScanIcon = (type) => {
         const icons = {
@@ -130,10 +184,10 @@ const ScanResults = () => {
 
     if (loading) {
         return (
-            <div className="min-h-screen flex items-center justify-center">
+            <div className="min-h-screen flex items-center justify-center bg-slate-50">
                 <div className="text-center">
-                    <FaSpinner className="animate-spin text-4xl text-blue-500 mx-auto mb-4" />
-                    <p className="text-gray-500">Loading scan results...</p>
+                    <FaSpinner className="animate-spin text-4xl text-primary-blue mx-auto mb-4" />
+                    <p className="text-gray-500 animate-pulse">Retrieving diagnostic data...</p>
                 </div>
             </div>
         );
@@ -141,328 +195,385 @@ const ScanResults = () => {
 
     if (!scan) {
         return (
-            <div className="min-h-screen flex items-center justify-center">
-                <GlassCard className="p-8 text-center">
+            <div className="min-h-screen flex items-center justify-center bg-slate-50">
+                <GlassCard className="p-8 text-center max-w-md">
                     <FaExclamationTriangle className="text-4xl text-yellow-500 mx-auto mb-4" />
-                    <h2 className="text-xl font-bold text-gray-800 mb-2">Scan Not Found</h2>
-                    <p className="text-gray-500 mb-4">The requested scan could not be found.</p>
+                    <h2 className="text-xl font-bold text-gray-800 mb-2">Scan Record Unreachable</h2>
+                    <p className="text-gray-500 mb-6">The requested diagnostic scan could not be found or access was denied.</p>
                     <Link to="/patient/scans">
-                        <Button>Back to My Scans</Button>
+                        <Button className="w-full">Back to My Scans</Button>
                     </Link>
                 </GlassCard>
             </div>
         );
     }
 
-    const aiResult = scan.ai_prediction;
+    const aiInfo = parseAIResult(scan);
     const report = scan.Reports?.[0];
-    const confidence = aiResult?.primary?.confidence || 0;
-    const severityInfo = getSeverityFromConfidence(confidence);
+    const isFinalized = report?.finalized;
+    const severityInfo = getSeverityFromConfidence(aiInfo.confidence);
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50/30 p-6">
-            <div className="max-w-6xl mx-auto">
+        <div className="min-h-screen bg-slate-50 p-4 md:p-8">
+            <div className="max-w-7xl mx-auto">
                 {/* Header */}
-                <div className="flex items-center justify-between mb-8">
+                <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
                     <div className="flex items-center gap-4">
                         <Link to="/patient/scans">
-                            <Button variant="ghost" size="sm">
-                                <FaArrowLeft className="mr-2" /> Back to Scans
-                            </Button>
+                            <button className="p-2 hover:bg-gray-200 rounded-full transition-colors">
+                                <FaArrowLeft className="text-gray-600" />
+                            </button>
                         </Link>
                         <div>
-                            <h1 className="text-2xl font-bold text-gray-800">AI Analysis Results</h1>
-                            <p className="text-gray-500 text-sm">
-                                Scan ID: {scan.id?.slice(0, 8)}... • {new Date(scan.createdAt).toLocaleDateString()}
-                            </p>
+                            <h1 className="text-2xl font-bold text-gray-900">
+                                {isFinalized ? 'Diagnostic Report' : 'Scan Analysis Results'}
+                            </h1>
+                            <div className="flex items-center gap-2 text-sm text-gray-500 mt-1">
+                                <Badge variant="primary" className="bg-blue-50 text-blue-600 uppercase text-[10px]">
+                                    ID: {scan.id?.slice(0, 8)}
+                                </Badge>
+                                <span>•</span>
+                                <span className="flex items-center gap-1">
+                                    <FaCalendarAlt className="text-[10px]" /> 
+                                    {new Date(scan.createdAt).toLocaleDateString()}
+                                </span>
+                            </div>
                         </div>
                     </div>
-                    <Badge variant={scan.status === 'verified' ? 'success' : 'warning'}>
-                        {scan.status}
-                    </Badge>
+                    
+                    <div className="flex items-center gap-3">
+                        {isFinalized && report.final_report && (
+                            <Button 
+                                onClick={() => window.open(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${report.final_report}`, '_blank')}
+                                className="bg-teal-600 hover:bg-teal-700 text-white shadow-lg shadow-teal-100"
+                            >
+                                <FaDownload className="mr-2" /> Download Official PDF
+                            </Button>
+                        )}
+                        <Badge variant={isFinalized ? 'success' : 'warning'} className="px-4 py-1.5 uppercase tracking-wider text-[10px]">
+                            {isFinalized ? 'Finalized' : 'Preliminary AI Preview'}
+                        </Badge>
+                    </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    {/* Scan Image */}
-                    <div className="lg:col-span-2">
-                        <GlassCard className="overflow-hidden">
-                            <div className="bg-gray-900 p-4 relative">
-                                {/* Toggle buttons */}
-                                <div className="absolute top-4 left-4 z-10 flex gap-2">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                    {/* LEFT COLUMN: Image & View Controls */}
+                    <div className="lg:col-span-7 space-y-6">
+                        <GlassCard className="overflow-hidden border-0 shadow-xl">
+                            <div className="bg-[#0a0a0a] p-2 md:p-6 relative min-h-[400px] flex flex-col">
+                                {/* Image Overlay Controls */}
+                                <div className="absolute top-6 left-6 z-20 flex gap-2">
                                     <button
                                         onClick={() => setShowHeatmap(false)}
-                                        className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${!showHeatmap ? 'bg-white text-gray-900' : 'bg-white/20 text-white hover:bg-white/30'
-                                            }`}
+                                        className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${!showHeatmap ? 'bg-white text-gray-900 shadow-lg' : 'bg-white/10 text-white hover:bg-white/20'}`}
                                     >
                                         Original
                                     </button>
                                     <button
                                         onClick={() => setShowHeatmap(true)}
-                                        className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${showHeatmap ? 'bg-white text-gray-900' : 'bg-white/20 text-white hover:bg-white/30'
-                                            }`}
+                                        className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${showHeatmap ? 'bg-white text-gray-900 shadow-lg' : 'bg-white/10 text-white hover:bg-white/20'}`}
                                     >
-                                        🔥 AI Attention Map
+                                        AI Analysis Overlay
                                     </button>
                                 </div>
 
-                                {/* Download button */}
-                                <div className="absolute top-4 right-4 z-10">
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="bg-white/20 text-white hover:bg-white/30"
-                                        onClick={() => window.open(`http://localhost:5000${scan.file_url}`, '_blank')}
-                                    >
-                                        <FaDownload />
-                                    </Button>
-                                </div>
-
-                                {/* Image */}
-                                <div className="relative flex justify-center">
-                                    <img
-                                        src={`http://localhost:5000${scan.file_url}`}
-                                        alt="Medical Scan"
-                                        className="max-h-[500px] object-contain rounded-lg"
-                                        onError={(e) => {
-                                            e.target.src = 'https://prod-images-static.radiopaedia.org/images/157210/332ea09151e9639f66a439777d617d_jumbo.jpg';
-                                        }}
-                                    />
-
-                                    {/* Heatmap overlay */}
-                                    {showHeatmap && (
-                                        <motion.div
+                                {/* Main Image */}
+                                <div className="flex-1 flex items-center justify-center relative overflow-hidden rounded-xl">
+                                    <AnimatePresence mode="wait">
+                                        <motion.img
+                                            key={showHeatmap ? 'heatmap' : 'original'}
                                             initial={{ opacity: 0 }}
                                             animate={{ opacity: 1 }}
-                                            className="absolute inset-0 flex items-center justify-center pointer-events-none"
-                                        >
-                                            <div
-                                                className="absolute inset-0"
-                                                style={{
-                                                    background: 'radial-gradient(ellipse at 55% 55%, rgba(239, 68, 68, 0.5) 0%, rgba(251, 191, 36, 0.3) 25%, transparent 50%)',
-                                                    borderRadius: '0.5rem'
-                                                }}
-                                            />
-                                        </motion.div>
-                                    )}
+                                            exit={{ opacity: 0 }}
+                                            src={showHeatmap && scan.ai_heatmap_url ? `${import.meta.env.VITE_API_URL.split('/api')[0]}${scan.ai_heatmap_url}` : `${import.meta.env.VITE_API_URL.split('/api')[0]}${scan.file_url}`}
+                                            alt="Medical Scan"
+                                            className="max-h-[600px] w-auto object-contain"
+                                            onError={(e) => {
+                                                e.target.src = 'https://prod-images-static.radiopaedia.org/images/157210/332ea09151e9639f66a439777d617d_jumbo.jpg';
+                                            }}
+                                        />
+                                    </AnimatePresence>
                                 </div>
 
                                 {/* Legend */}
                                 {showHeatmap && (
-                                    <div className="mt-4 flex items-center justify-center gap-4 text-white text-sm">
-                                        <div className="flex items-center gap-1">
-                                            <span className="w-3 h-3 rounded bg-red-500"></span>
-                                            <span>High attention (potential abnormality)</span>
+                                    <div className="mt-4 flex items-center justify-center gap-6 text-white text-[10px] font-medium uppercase tracking-widest bg-white/5 py-3 rounded-lg">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-3 h-3 rounded-sm bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]"></div>
+                                            <span>Abnormal Activity</span>
                                         </div>
-                                        <div className="flex items-center gap-1">
-                                            <span className="w-3 h-3 rounded bg-yellow-500"></span>
-                                            <span>Moderate attention</span>
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-3 h-3 rounded-sm bg-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.5)]"></div>
+                                            <span>Suspicious Region</span>
                                         </div>
                                     </div>
                                 )}
                             </div>
 
-                            {/* Scan info */}
-                            <div className="p-4 bg-gray-50 border-t border-gray-100">
-                                <div className="flex items-center gap-4 text-sm text-gray-600">
+                            {/* Scan Meta Footer */}
+                            <div className="px-6 py-4 bg-white flex items-center justify-between border-t border-gray-100">
+                                <div className="flex items-center gap-6">
                                     <div className="flex items-center gap-2">
-                                        {getScanIcon(scan.scan_type)}
-                                        <span className="capitalize">{(scan.scan_type || 'unknown').replace('_', ' ')}</span>
-                                    </div>
-                                    <span>•</span>
-                                    <div className="flex items-center gap-2">
-                                        <FaCalendarAlt className="text-gray-400" />
-                                        <span>{new Date(scan.createdAt).toLocaleDateString()}</span>
-                                    </div>
-                                    {scan.facility_name && (
-                                        <>
-                                            <span>•</span>
-                                            <span>{scan.facility_name}</span>
-                                        </>
-                                    )}
-                                </div>
-                            </div>
-                        </GlassCard>
-                    </div>
-
-                    {/* Results Panel */}
-                    <div className="space-y-6">
-                        {/* AI Diagnosis */}
-                        {aiResult && (
-                            <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                            >
-                                <GlassCard className="p-6">
-                                    <div className="flex items-center gap-3 mb-4">
-                                        <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg text-white">
-                                            <FaBrain />
+                                        <div className="p-1.5 bg-gray-50 rounded-md">
+                                            {getScanIcon(scan.scan_type)}
                                         </div>
-                                        <div>
-                                            <h3 className="font-bold text-gray-800">AI Analysis</h3>
-                                            <p className="text-xs text-gray-500">Powered by deep learning</p>
-                                        </div>
-                                        {ttsEnabled && (
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                className="ml-auto flex items-center gap-2 text-primary-500 border-primary-500 bg-white hover:bg-primary-50"
-                                                onClick={handleAITTS}
-                                            >
-                                                {isSpeakingAI ? <FaStop /> : <FaVolumeUp />}
-                                                {isSpeakingAI ? 'Stop' : 'Listen'}
-                                            </Button>
-                                        )}
-                                    </div>
-
-                                    {/* Primary finding */}
-                                    <div className="text-center py-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl mb-4">
-                                        <p className="text-2xl font-bold text-gray-800 mb-1">
-                                            {aiResult.primary?.condition || 'Analysis Complete'}
-                                        </p>
-                                        <p className={`text-lg font-semibold ${getConfidenceColor(confidence)}`}>
-                                            {(confidence * 100).toFixed(0)}% Confidence
-                                        </p>
-                                        <span className={`inline-block mt-2 px-3 py-1 rounded-full text-sm ${severityInfo.color}`}>
-                                            {severityInfo.text}
+                                        <span className="text-sm font-bold text-gray-700 capitalize">
+                                            {(scan.scan_type || 'unknown').replace('_', ' ')}
                                         </span>
                                     </div>
-
-                                    {/* Confidence bar */}
-                                    <div className="mb-4">
-                                        <div className="flex justify-between text-xs text-gray-500 mb-1">
-                                            <span>AI Confidence</span>
-                                            <span>{(confidence * 100).toFixed(0)}%</span>
-                                        </div>
-                                        <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-                                            <motion.div
-                                                initial={{ width: 0 }}
-                                                animate={{ width: `${confidence * 100}%` }}
-                                                transition={{ duration: 1, delay: 0.5 }}
-                                                className={`h-full rounded-full ${confidence >= 0.8 ? 'bg-green-500' :
-                                                        confidence >= 0.6 ? 'bg-yellow-500' : 'bg-red-500'
-                                                    }`}
-                                            />
-                                        </div>
+                                    <div className="h-4 w-px bg-gray-200"></div>
+                                    <div className="flex items-center gap-2 text-gray-500">
+                                        <FaMicroscope className="text-xs" />
+                                        <span className="text-xs font-medium uppercase">{scan.facility_name || 'Standard Radiology'}</span>
                                     </div>
+                                </div>
+                                <button className="text-primary-blue hover:text-blue-700 transition-colors">
+                                    <FaDownload className="text-sm" />
+                                </button>
+                            </div>
+                        </GlassCard>
 
-                                    {/* Differential diagnoses */}
-                                    {aiResult.differential && (
-                                        <div className="space-y-2">
-                                            <p className="text-sm font-medium text-gray-600">Other possibilities:</p>
-                                            {aiResult.differential.slice(1, 3).map((item, idx) => (
-                                                <div key={idx} className="flex items-center justify-between text-sm">
-                                                    <span className="text-gray-600">{item.condition}</span>
-                                                    <span className="text-gray-400">{(item.confidence * 100).toFixed(0)}%</span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-
-                                    {/* AI Explanation */}
-                                    {scan.ai_explanation && (
-                                        <div className="mt-4 p-3 bg-gray-50 rounded-lg text-sm text-gray-600">
-                                            <p>{scan.ai_explanation}</p>
-                                        </div>
-                                    )}
-
-                                    {/* Disclaimer */}
-                                    <div className="mt-4 p-3 bg-yellow-50 rounded-lg border border-yellow-100">
-                                        <div className="flex items-start gap-2">
-                                            <FaExclamationTriangle className="text-yellow-600 mt-0.5 flex-shrink-0" />
-                                            <p className="text-xs text-yellow-700">
-                                                AI analysis is for informational purposes only and should not replace professional medical advice.
-                                            </p>
-                                        </div>
-                                    </div>
-                                </GlassCard>
-                            </motion.div>
+                        {/* Additional Clinical Info if present */}
+                        {scan.notes && (
+                            <div className="p-6 bg-blue-50/50 rounded-2xl border border-blue-100/50">
+                                <h4 className="text-sm font-bold text-blue-900 mb-2 flex items-center gap-2">
+                                    <FaInfoCircle /> Patient Clinical History
+                                </h4>
+                                <p className="text-sm text-blue-800 leading-relaxed">
+                                    {scan.notes}
+                                </p>
+                            </div>
                         )}
+                    </div>
 
-                        {/* Doctor's Report */}
-                        {report ? (
+                    {/* RIGHT COLUMN: Results & Reports */}
+                    <div className="lg:col-span-5 space-y-6">
+                        {/* 1. DOCTOR'S REPORT (IF FINALIZED) */}
+                        {isFinalized ? (
                             <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.2 }}
+                                initial={{ opacity: 0, x: 20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                className="space-y-6"
                             >
-                                <GlassCard className="p-6">
-                                    <div className="flex items-center gap-3 mb-4">
-                                        <div className="p-2 bg-green-500 rounded-lg text-white">
-                                            <FaUserMd />
+                                <div className="bg-white rounded-3xl shadow-2xl overflow-hidden border border-gray-100 ring-1 ring-gray-100">
+                                    <div className="bg-gradient-to-br from-gray-900 to-slate-800 p-8 text-white">
+                                        <div className="flex items-center justify-between mb-4">
+                                            <div className="p-2 bg-white/10 rounded-lg">
+                                                <FaUserMd className="text-2xl text-teal-400" />
+                                            </div>
+                                            <Badge className="bg-teal-500/20 text-teal-300 border-teal-500/30 font-bold px-3 py-1">OFFICIAL REPORT</Badge>
                                         </div>
+                                        <h3 className="text-2xl font-black tracking-tight">Official Physician Report</h3>
+                                        <p className="text-gray-400 text-sm mt-1">Verified Medical Diagnostic Document</p>
+                                    </div>
+                                    
+                                    <div className="absolute top-8 right-8">
+                                        <button 
+                                            onClick={async () => {
+                                                try {
+                                                    const response = await api.post(`/scans/${scan.id}/report/pdf`, {}, { responseType: 'blob' });
+                                                    const url = window.URL.createObjectURL(new Blob([response.data]));
+                                                    const link = document.createElement('a');
+                                                    link.href = url;
+                                                    link.setAttribute('download', `Report_${scan.id.substring(0,8)}.pdf`);
+                                                    document.body.appendChild(link);
+                                                    link.click();
+                                                } catch (err) {
+                                                    console.error("Download failed", err);
+                                                }
+                                            }}
+                                            className="p-3 bg-white/10 hover:bg-white/20 rounded-xl transition-all text-white flex items-center gap-2"
+                                        >
+                                            <FaDownload /> <span className="text-xs font-bold">PDF</span>
+                                        </button>
+                                    </div>
+
+                                    <div className="p-8 space-y-6">
+                                        {/* Physician Info */}
+                                        <div className="flex items-center gap-4 pb-6 border-b border-gray-50">
+                                            <div className="w-14 h-14 bg-teal-50 rounded-2xl flex items-center justify-center text-teal-600">
+                                                <FaUserMd className="text-2xl" />
+                                            </div>
+                                            <div>
+                                                <p className="text-lg font-bold text-gray-900">{report.Doctor?.User?.name || 'Assigned Physician'}</p>
+                                                <p className="text-sm text-gray-500 font-medium">{report.Doctor?.specialization || 'Radiology Specialist'}</p>
+                                                <p className="text-[10px] text-gray-400 font-bold tracking-widest mt-1">LICENSE: {report.Doctor?.pmdc_number || 'N/A'}</p>
+                                            </div>
+                                        </div>
+
+                                        {/* Findings */}
                                         <div>
-                                            <h3 className="font-bold text-gray-800">Doctor's Report</h3>
-                                            <p className="text-xs text-gray-500">
-                                                {report.Doctor?.User?.name || 'Verified by specialist'}
+                                            <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Findings</h4>
+                                            <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">
+                                                {report.doctor_notes || 'No specific findings documented.'}
                                             </p>
                                         </div>
-                                        {ttsEnabled && (
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                className="ml-auto flex items-center gap-2 mr-2 text-green-500 border-green-500 bg-white hover:bg-green-50"
-                                                onClick={handleDocTTS}
-                                            >
-                                                {isSpeakingDoc ? <FaStop /> : <FaVolumeUp />}
-                                                {isSpeakingDoc ? 'Stop' : 'Listen'}
-                                            </Button>
-                                        )}
-                                        <Badge variant="success" className={ttsEnabled ? "" : "ml-auto"}>Verified</Badge>
-                                    </div>
 
-                                    <div className="space-y-4">
-                                        <div>
-                                            <p className="text-sm font-medium text-gray-500 mb-1">Diagnosis</p>
-                                            <p className="text-lg font-semibold text-gray-800">{report.diagnosis}</p>
+                                        {/* Impression */}
+                                        <div className="p-4 bg-teal-50/50 rounded-2xl border border-teal-100">
+                                            <h4 className="text-xs font-bold text-teal-700 uppercase tracking-widest mb-2">Impression / Conclusion</h4>
+                                            <p className="text-teal-900 font-bold leading-relaxed">
+                                                {report.diagnosis}
+                                            </p>
                                         </div>
 
-                                        {report.doctor_notes && (
+                                        {/* Recommendations */}
+                                        {report.recommendations && (
                                             <div>
-                                                <p className="text-sm font-medium text-gray-500 mb-1">Clinical Notes</p>
-                                                <p className="text-gray-600">{report.doctor_notes}</p>
+                                                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Recommendations</h4>
+                                                <div className="p-4 bg-gray-50 rounded-2xl">
+                                                    <p className="text-gray-700 text-sm italic leading-relaxed">
+                                                        {report.recommendations}
+                                                    </p>
+                                                </div>
                                             </div>
                                         )}
 
-                                        {report.finalized_at && (
-                                            <div className="text-xs text-gray-400 pt-2 border-t border-gray-100">
-                                                Report finalized: {new Date(report.finalized_at).toLocaleString()}
+                                        {/* Patient Friendly Summary */}
+                                        {report.report_patient_friendly && (
+                                            <div className="bg-blue-50 p-5 rounded-2xl border border-blue-100">
+                                                <h4 className="text-sm font-bold text-blue-900 mb-2 flex items-center gap-2">
+                                                    <FaInfoCircle /> Patient Summary
+                                                </h4>
+                                                <p className="text-blue-800 text-sm leading-relaxed">
+                                                    {report.report_patient_friendly}
+                                                </p>
                                             </div>
                                         )}
                                     </div>
-                                </GlassCard>
+
+                                    <div className="px-8 py-4 bg-gray-50 border-t border-gray-100 flex justify-between items-center text-[10px] text-gray-400 font-bold">
+                                        <span>FINALIZED: {new Date(report.finalized_at).toLocaleString()}</span>
+                                        <span className="text-teal-600 flex items-center gap-1">
+                                            <FaCheckCircle /> DIGITALLY SIGNED
+                                        </span>
+                                    </div>
+                                </div>
+                                
+                                {/* Collapsible AI Details */}
+                                <div className="p-4 border border-dashed border-gray-200 rounded-2xl">
+                                    <details className="group">
+                                        <summary className="flex items-center justify-between cursor-pointer list-none">
+                                            <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">View Technical AI Insights</span>
+                                            <div className="text-gray-300 group-open:rotate-180 transition-transform">
+                                                <FaArrowLeft className="-rotate-90" />
+                                            </div>
+                                        </summary>
+                                        <div className="mt-4 pt-4 border-t border-gray-50 space-y-4">
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-xs text-gray-500">AI Confidence Rating</span>
+                                                <span className={`text-xs font-bold ${getConfidenceColor(aiInfo.confidence)}`}>{(aiInfo.confidence * 100).toFixed(1)}%</span>
+                                            </div>
+                                            {renderAIExplanation(scan.ai_explanation)}
+                                        </div>
+                                    </details>
+                                </div>
                             </motion.div>
                         ) : (
-                            <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.2 }}
-                            >
-                                <GlassCard className="p-6 text-center">
-                                    <FaUserMd className="text-4xl text-gray-300 mx-auto mb-3" />
-                                    <h3 className="font-bold text-gray-600 mb-2">Awaiting Doctor Review</h3>
-                                    <p className="text-sm text-gray-400 mb-4">
-                                        A specialist will review your scan and provide a detailed report.
+                            /* 2. PRELIMINARY AI INSIGHT (WHEN NOT FINALIZED) */
+                            <div className="space-y-6">
+                                <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100">
+                                    <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-6 text-white">
+                                        <div className="flex items-center justify-between mb-4">
+                                            <div className="p-2 bg-white/20 rounded-lg">
+                                                <FaBrain className="text-xl" />
+                                            </div>
+                                            <Badge className="bg-yellow-400 text-yellow-900 border-0 font-bold">PRELIMINARY</Badge>
+                                        </div>
+                                        <h3 className="text-xl font-bold">Preliminary AI Insights</h3>
+                                        <p className="text-blue-100 text-sm mt-1">Deep Learning Diagnostic Support</p>
+                                    </div>
+
+                                    <div className="p-8 space-y-8">
+                                        {/* Status Message */}
+                                        <div className="flex items-start gap-4 p-4 bg-blue-50 rounded-2xl border border-blue-100">
+                                            <FaInfoCircle className="text-blue-600 mt-1 flex-shrink-0" />
+                                            <p className="text-xs text-blue-800 leading-relaxed font-medium">
+                                                This analysis is performed by our AI diagnostic engine. A licensed physician is currently reviewing these results. Please do not take medical action until the report is finalized.
+                                            </p>
+                                        </div>
+
+                                        {/* Primary Finding - Simplified for Patient */}
+                                        <div className="text-center py-8 bg-slate-50 rounded-3xl border border-slate-100 relative overflow-hidden">
+                                            <div className="relative z-10">
+                                                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Current Status</p>
+                                                <h2 className="text-2xl font-black text-gray-900 mb-2 leading-tight px-4">
+                                                    Initial Analysis Complete
+                                                </h2>
+                                                <div className="flex items-center justify-center gap-2 font-bold text-blue-600">
+                                                    <FaMicroscope className="text-xl" />
+                                                    <span className="text-lg">Awaiting Physician Review</span>
+                                                </div>
+                                            </div>
+                                            {/* Subtle background decoration */}
+                                            <FaBrain className="absolute -bottom-4 -right-4 text-8xl text-gray-100 rotate-12" />
+                                        </div>
+
+                                        {/* Info Box */}
+                                        <div className="p-5 bg-indigo-50 rounded-2xl border border-indigo-100">
+                                            <h4 className="text-sm font-bold text-indigo-900 mb-3 flex items-center gap-2">
+                                                <FaInfoCircle /> What happens next?
+                                            </h4>
+                                            <ul className="space-y-3">
+                                                <li className="flex items-start gap-3 text-xs text-indigo-800">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 mt-1.5 flex-shrink-0"></div>
+                                                    <span>Our AI has processed your scan and identified key patterns for the doctor to investigate.</span>
+                                                </li>
+                                                <li className="flex items-start gap-3 text-xs text-indigo-800">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 mt-1.5 flex-shrink-0"></div>
+                                                    <span>A licensed radiologist will now verify these findings and provide a final diagnosis.</span>
+                                                </li>
+                                                <li className="flex items-start gap-3 text-xs text-indigo-800">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 mt-1.5 flex-shrink-0"></div>
+                                                    <span>You will receive a notification as soon as your official report is ready for download.</span>
+                                                </li>
+                                            </ul>
+                                        </div>
+
+
+
+
+                                    </div>
+
+                                    <div className="px-8 py-6 bg-gray-900 text-white flex flex-col items-center gap-4">
+                                        <div className="flex items-center gap-4 w-full">
+                                            <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center animate-pulse">
+                                                <FaUserMd className="text-blue-300 text-xl" />
+                                            </div>
+                                            <div className="flex-1">
+                                                <p className="text-sm font-bold">Verification in Progress</p>
+                                                <p className="text-[10px] text-gray-400 font-medium">Your scan is queued for physician review</p>
+                                            </div>
+                                        </div>
+                                        <Link to="/patient/book-appointment" className="w-full">
+                                            <button className="w-full bg-blue-600 hover:bg-blue-500 py-3 rounded-xl font-bold text-sm transition-all shadow-lg shadow-blue-900/20">
+                                                Fast-Track Review
+                                            </button>
+                                        </Link>
+                                    </div>
+                                </div>
+
+                                {/* Disclaimer */}
+                                <div className="text-center">
+                                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest leading-relaxed">
+                                        Artificial Intelligence is a support tool. <br/> 
+                                        Final Diagnosis is only valid when signed by a Physician.
                                     </p>
-                                    <Link to="/patient/book-appointment">
-                                        <Button variant="outline" size="sm">
-                                            Book Consultation
-                                        </Button>
-                                    </Link>
-                                </GlassCard>
-                            </motion.div>
+                                </div>
+                            </div>
                         )}
 
-                        {/* Actions */}
-                        <div className="flex gap-3">
+                        {/* GLOBAL ACTIONS */}
+                        <div className="flex gap-4 pt-4">
                             <Link to="/patient/scans" className="flex-1">
-                                <Button variant="outline" className="w-full">
-                                    View All Scans
-                                </Button>
+                                <button className="w-full bg-white border border-gray-200 py-3 rounded-2xl text-gray-600 font-bold text-sm hover:bg-gray-50 transition-all flex items-center justify-center gap-2">
+                                    <FaArrowLeft className="text-xs" /> All Records
+                                </button>
                             </Link>
-                            <Link to="/patient/book-appointment" className="flex-1">
-                                <Button className="w-full">
-                                    Book Follow-up
-                                </Button>
+                            <Link to="/patient/support" className="flex-1">
+                                <button className="w-full bg-white border border-gray-200 py-3 rounded-2xl text-gray-600 font-bold text-sm hover:bg-gray-50 transition-all flex items-center justify-center gap-2">
+                                    <FaInfoCircle className="text-xs" /> Need Help?
+                                </button>
                             </Link>
                         </div>
                     </div>

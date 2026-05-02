@@ -1,4 +1,4 @@
-const { Appointment, Doctor, Patient, User, Payment } = require('../models');
+const { Appointment, Doctor, Patient, User, Payment, Notification } = require('../models');
 const { sendAppointmentConfirmation, sendDoctorAppointmentNotification, sendCancellationNotification, sendRescheduleNotification } = require('../utils/emailService');
 const { Op } = require('sequelize');
 const Stripe = require('stripe');
@@ -107,7 +107,8 @@ const bookAppointment = async (req, res) => {
 
         // 10. Verify Doctor Working Hours (if availability is set)
         if (doctorProfile.working_hours) {
-            const dayName = appointmentDate.toLocaleDateString('en-US', { weekday: 'long' });
+            const appointmentMoment = moment.tz(date, "YYYY-MM-DD", timezone);
+            const dayName = appointmentMoment.format('dddd');
             let daySchedule = doctorProfile.working_hours[dayName];
 
             // If new nested structure is present, pick the requested type
@@ -154,6 +155,26 @@ const bookAppointment = async (req, res) => {
         if (patientUser && doctorUser) {
             await sendAppointmentConfirmation(patientUser.email, patientUser.name, doctorUser.name, date, timeSlot, type, meetingLink);
             await sendDoctorAppointmentNotification(doctorUser.email, doctorUser.name, patientUser.name, date, timeSlot, type);
+        }
+
+        // In-app notifications
+        try {
+            await Notification.create({
+                user_id: doctorProfile.user_id,
+                title: 'New Appointment Booked',
+                message: `${patientUser?.name || 'A patient'} booked a ${type} appointment on ${date} at ${timeSlot}.`,
+                type: 'appointment',
+                link: '/doctor/appointments'
+            });
+            await Notification.create({
+                user_id: req.user.id,
+                title: 'Appointment Confirmed',
+                message: `Your ${type} appointment with Dr. ${doctorUser?.name || 'the doctor'} on ${date} at ${timeSlot} is confirmed.`,
+                type: 'appointment',
+                link: '/patient/appointments'
+            });
+        } catch (notifErr) {
+            console.error('[NOTIF] bookAppointment notification failed:', notifErr.message);
         }
 
         res.status(201).json(appointment);
@@ -231,7 +252,9 @@ const updateAppointmentStatus = async (req, res) => {
     const { status, meetingLink } = req.body;
 
     try {
-        const appointment = await Appointment.findByPk(req.params.id);
+        const appointment = await Appointment.findByPk(req.params.id, {
+            include: [{ model: Patient, include: [{ model: User, attributes: ['name'] }] }]
+        });
 
         if (!appointment) {
             return res.status(404).json({ message: 'Appointment not found' });
@@ -251,6 +274,22 @@ const updateAppointmentStatus = async (req, res) => {
         }
 
         await appointment.save();
+
+        // Notify patient of status change
+        try {
+            if (appointment.Patient?.user_id) {
+                await Notification.create({
+                    user_id: appointment.Patient.user_id,
+                    title: 'Appointment Status Updated',
+                    message: `Your appointment on ${appointment.date} at ${appointment.time_slot} is now: ${status}.`,
+                    type: 'appointment',
+                    link: '/patient/appointments'
+                });
+            }
+        } catch (notifErr) {
+            console.error('[NOTIF] updateAppointmentStatus notification failed:', notifErr.message);
+        }
+
         res.json(appointment);
     } catch (error) {
         console.error("Update Status Error:", error);
@@ -262,7 +301,7 @@ const updateAppointmentStatus = async (req, res) => {
 // @route   GET /api/appointments/check-availability
 // @access  Public
 const checkAvailability = async (req, res) => {
-    const { doctorId, date, timeSlot } = req.query;
+    const { doctorId, date, timeSlot, type } = req.query;
 
     try {
         // 1. Validate date hasn't passed
@@ -313,14 +352,13 @@ const checkAvailability = async (req, res) => {
 
         // 6. Check working hours
         if (doctorProfile.working_hours) {
-            const dayName = appointmentDate.toLocaleDateString('en-US', { weekday: 'long' });
+            const appointmentMoment = moment.tz(date, "YYYY-MM-DD", doctorProfile.timezone || 'Asia/Karachi');
+            const dayName = appointmentMoment.format('dddd');
 
-            // For checkAvailability where type isn't passed (legacy), check both
             const rawSchedule = doctorProfile.working_hours[dayName];
             let isAvailable = false;
 
             if (rawSchedule) {
-                // If it's a legacy flat schedule OR we manually check physical/virtual
                 const checkSlot = (schedule) => {
                     if (!schedule || !schedule.start) return false;
                     const slotTime = parseTime(timeSlot);
@@ -330,8 +368,13 @@ const checkAvailability = async (req, res) => {
                 };
 
                 if (rawSchedule.start) {
+                    // Legacy flat schedule
                     isAvailable = checkSlot(rawSchedule);
+                } else if (type && rawSchedule[type]) {
+                    // Strict type check if type is provided
+                    isAvailable = checkSlot(rawSchedule[type]);
                 } else {
+                    // Fallback: check both if type not provided
                     isAvailable = checkSlot(rawSchedule.physical) || checkSlot(rawSchedule.virtual);
                 }
             }
@@ -339,7 +382,7 @@ const checkAvailability = async (req, res) => {
             if (!isAvailable) {
                 return res.json({
                     available: false,
-                    message: `Outside working hours.`
+                    message: `Outside working hours for ${type || 'this'} appointment.`
                 });
             }
         }
@@ -430,7 +473,8 @@ const rescheduleAppointment = async (req, res) => {
 
         // 9. Check doctor's working hours (if set)
         if (doctorProfile.working_hours) {
-            const dayName = appointmentDate.toLocaleDateString('en-US', { weekday: 'long' });
+            const appointmentMoment = moment.tz(newDate, "YYYY-MM-DD", timezone);
+            const dayName = appointmentMoment.format('dddd');
             let daySchedule = doctorProfile.working_hours[dayName];
 
             // If nested structure is present, check against current appointment type
@@ -530,6 +574,21 @@ const rescheduleAppointment = async (req, res) => {
                 appointment.type,
                 meetingLink
             );
+        }
+
+        // Notify doctor of reschedule
+        try {
+            if (appointment.Doctor?.user_id) {
+                await Notification.create({
+                    user_id: appointment.Doctor.user_id,
+                    title: 'Appointment Rescheduled',
+                    message: `${appointment.Patient?.User?.name || 'A patient'} rescheduled their appointment to ${newDate} at ${newTimeSlot}.`,
+                    type: 'appointment',
+                    link: '/doctor/appointments'
+                });
+            }
+        } catch (notifErr) {
+            console.error('[NOTIF] rescheduleAppointment notification failed:', notifErr.message);
         }
 
         console.log(`[NOTIFICATION] Appointment ${id} rescheduled to ${newDate} ${newTimeSlot}`);
@@ -660,6 +719,29 @@ const cancelAppointment = async (req, res) => {
             await sendCancellationNotification(patientUser.email, doctorEmail, patientUser.name, doctorName, appointment.date, appointment.time_slot, refundData);
         }
 
+        // Notify the OTHER party
+        try {
+            if (isPatient && appointment.Doctor?.user_id) {
+                await Notification.create({
+                    user_id: appointment.Doctor.user_id,
+                    title: 'Appointment Cancelled',
+                    message: `${appointment.Patient?.User?.name || 'A patient'} cancelled their appointment on ${appointment.date} at ${appointment.time_slot}.`,
+                    type: 'appointment',
+                    link: '/doctor/appointments'
+                });
+            } else if (isDoctor && appointment.Patient?.user_id) {
+                await Notification.create({
+                    user_id: appointment.Patient.user_id,
+                    title: 'Appointment Cancelled',
+                    message: `Your appointment on ${appointment.date} at ${appointment.time_slot} was cancelled by the doctor.`,
+                    type: 'appointment',
+                    link: '/patient/appointments'
+                });
+            }
+        } catch (notifErr) {
+            console.error('[NOTIF] cancelAppointment notification failed:', notifErr.message);
+        }
+
         console.log(`[NOTIFICATION] Appointment ${id} cancelled`);
 
         res.json({
@@ -677,7 +759,7 @@ const cancelAppointment = async (req, res) => {
 // @route   GET /api/appointments/available-slots
 // @access  Public
 const getAvailableSlots = async (req, res) => {
-    const { doctorId, date } = req.query;
+    const { doctorId, date, type } = req.query;
     try {
         if (!doctorId || !date) {
             return res.status(400).json({ message: 'Doctor ID and Date are required' });
@@ -701,9 +783,7 @@ const getAvailableSlots = async (req, res) => {
         let workingHoursEnd = 0;
 
         if (doctorProfile.working_hours) {
-            // Fix undefined appointmentDate error
-            const dateObj = new Date(reqDate.format('YYYY-MM-DD'));
-            const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'long' });
+            const dayName = reqDate.format('dddd');
             const rawSchedule = doctorProfile.working_hours[dayName];
 
             if (!rawSchedule) return res.json({ availableSlots: [] });
@@ -712,7 +792,11 @@ const getAvailableSlots = async (req, res) => {
             if (rawSchedule.start) {
                 workingHoursStart = parseTime(rawSchedule.start);
                 workingHoursEnd = parseTime(rawSchedule.end);
-            } else {
+            } else if (type && rawSchedule[type]) {
+                // If type is requested and exists in nested schedule
+                workingHoursStart = rawSchedule[type].start ? parseTime(rawSchedule[type].start) : Infinity;
+                workingHoursEnd = rawSchedule[type].end ? parseTime(rawSchedule[type].end) : 0;
+            } else if (!type) {
                 let pStart = rawSchedule.physical?.start ? parseTime(rawSchedule.physical.start) : Infinity;
                 let vStart = rawSchedule.virtual?.start ? parseTime(rawSchedule.virtual.start) : Infinity;
                 let pEnd = rawSchedule.physical?.end ? parseTime(rawSchedule.physical.end) : 0;
@@ -720,6 +804,10 @@ const getAvailableSlots = async (req, res) => {
 
                 workingHoursStart = Math.min(pStart, vStart);
                 workingHoursEnd = Math.max(pEnd, vEnd);
+            } else {
+                // Type requested but not found in schedule
+                workingHoursStart = Infinity;
+                workingHoursEnd = 0;
             }
         } else {
             // Default 9 to 5
@@ -740,17 +828,25 @@ const getAvailableSlots = async (req, res) => {
 
         const bookedSlots = existingAppointments.map(a => parseTime(a.time_slot));
 
-        // Generate thirty-minute slots
-        const allTimeSlots = [
-            "09:00 AM", "09:30 AM", "10:00 AM", "10:30 AM", "11:00 AM", "11:30 AM",
-            "12:00 PM", "12:30 PM", "01:00 PM", "01:30 PM", "02:00 PM", "02:30 PM",
-            "03:00 PM", "03:30 PM", "04:00 PM", "04:30 PM", "05:00 PM", "05:30 PM",
-            "06:00 PM", "06:30 PM", "07:00 PM", "07:30 PM", "08:00 PM"
-        ];
+        const formatTimeFromMinutes = (minutes) => {
+            const h = Math.floor(minutes / 60);
+            const m = minutes % 60;
+            const period = h >= 12 ? 'PM' : 'AM';
+            let hour12 = h % 12;
+            if (hour12 === 0) hour12 = 12;
+            const paddedHour = String(hour12).padStart(2, '0');
+            const paddedMin = String(m).padStart(2, '0');
+            return `${paddedHour}:${paddedMin} ${period}`;
+        };
+
+        // Generate thirty-minute slots dynamically based on working hours
+        const allTimeSlots = [];
+        for (let m = workingHoursStart; m < workingHoursEnd; m += 30) {
+            allTimeSlots.push(formatTimeFromMinutes(m));
+        }
 
         const availableSlots = allTimeSlots.filter(slot => {
             const slotMinutes = parseTime(slot);
-            if (slotMinutes < workingHoursStart || slotMinutes >= workingHoursEnd) return false;
             if (isToday && slotMinutes <= currentMinutes) return false;
             // Check if within 29 mins of any booked slot to prevent overlap
             const isBooked = bookedSlots.some(booked => Math.abs(booked - slotMinutes) < 29);
@@ -839,9 +935,32 @@ const markNoShow = async (req, res) => {
     }
 };
 
+const getAppointmentById = async (req, res) => {
+    try {
+        const appointment = await Appointment.findByPk(req.params.id, {
+            include: [
+                { model: Patient, include: [{ model: User, attributes: ['name', 'email'] }] },
+                { model: Doctor, include: [{ model: User, attributes: ['name', 'email'] }] }
+            ]
+        });
+        if (!appointment) return res.status(404).json({ message: 'Appointment not found' });
+        const plain = appointment.get({ plain: true });
+        res.json({
+            ...plain,
+            _id: plain.id,
+            patient: plain.Patient ? { ...plain.Patient, name: plain.Patient.User?.name, email: plain.Patient.User?.email } : null,
+            doctor: plain.Doctor ? { ...plain.Doctor, name: plain.Doctor.User?.name, email: plain.Doctor.User?.email } : null,
+        });
+    } catch (error) {
+        console.error('Get Appointment By ID Error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
 module.exports = {
     bookAppointment,
     getAppointments,
+    getAppointmentById,
     updateAppointmentStatus,
     checkAvailability,
     rescheduleAppointment,

@@ -1,15 +1,14 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { bookAppointment, getDoctorById, createPaymentIntent, confirmPayment, checkAvailability } from '../../services/api';
+import { bookAppointment, getDoctorById, createPaymentIntent, confirmPayment, checkAvailability, getAvailableSlots } from '../../services/api';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements } from '@stripe/react-stripe-js';
 import CheckoutForm from '../../components/CheckoutForm';
 import { GlassCard, Badge } from '../../components/ui';
 import { toast } from 'react-hot-toast';
 
-// Initialize Stripe (Replace with your Publishable Key)
-const stripePromise = loadStripe('pk_test_51SXEY9GTWo477VxS1fLM5m62XmbGXX6i9rFN2pl0SZacg6ckLwkDfCCRis7n7pZwm0x7hJbDXKJpaNBksBAr9A53008baHnQIl');
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
 
 const BookAppointment = () => {
     const [searchParams] = useSearchParams();
@@ -31,47 +30,29 @@ const BookAppointment = () => {
         paymentMethod: 'card'
     });
 
-    // All possible time slots
-    const allTimeSlots = [
-        "09:00 AM", "09:30 AM", "10:00 AM", "10:30 AM", "11:00 AM", "11:30 AM",
-        "12:00 PM", "02:00 PM", "02:30 PM", "03:00 PM", "03:30 PM", "04:00 PM", "04:30 PM", "05:00 PM"
-    ];
-
-    // Helper to parse time to minutes
-    const parseTimeToMinutes = (timeStr) => {
-        const [time, modifier] = timeStr.split(' ');
-        let [hours, minutes] = time.split(':').map(Number);
-        if (hours === 12 && modifier === 'AM') hours = 0;
-        if (hours !== 12 && modifier === 'PM') hours += 12;
-        return hours * 60 + minutes;
-    };
-
-    // Filter available time slots based on selected date
+    // Fetch available time slots based on selected date
     useEffect(() => {
-        if (!formData.date) {
-            setAvailableSlots([]);
-            return;
-        }
+        const fetchSlots = async () => {
+            if (!formData.date || !doctor || !doctor.id) {
+                setAvailableSlots([]);
+                return;
+            }
 
-        const selectedDate = new Date(formData.date);
-        const today = new Date();
-        // Use ISO date string for reliable comparison (handles timezone issues)
-        const selectedDateStr = selectedDate.toISOString().split('T')[0];
-        const todayStr = today.toISOString().split('T')[0];
-        const isToday = selectedDateStr === todayStr;
+            try {
+                setCheckingSlot(true);
+                const { data } = await getAvailableSlots(doctor.id, formData.date, formData.type);
+                setAvailableSlots(data.availableSlots || []);
+            } catch (error) {
+                console.error("Error fetching available slots:", error);
+                setAvailableSlots([]);
+                toast.error("Failed to load available slots for this date.");
+            } finally {
+                setCheckingSlot(false);
+            }
+        };
 
-        if (isToday) {
-            // Filter out past times (with 30 min buffer)
-            const currentMinutes = today.getHours() * 60 + today.getMinutes() + 30;
-            const filtered = allTimeSlots.filter(slot => {
-                const slotMinutes = parseTimeToMinutes(slot);
-                return slotMinutes > currentMinutes;
-            });
-            setAvailableSlots(filtered);
-        } else {
-            setAvailableSlots(allTimeSlots);
-        }
-    }, [formData.date]);
+        fetchSlots();
+    }, [formData.date, formData.type, doctor]);
 
     useEffect(() => {
         const fetchDoctor = async () => {
@@ -118,32 +99,17 @@ const BookAppointment = () => {
             return;
         }
 
-        // 3. Validate Time (if today) - use ISO date string for reliable comparison
+        // 3. Simple time check if today (backend already filtered past slots, this is just extra safety)
         const selectedDateStr = selectedDate.toISOString().split('T')[0];
         const todayStr = new Date().toISOString().split('T')[0];
 
         if (selectedDateStr === todayStr) {
-            const now = new Date();
-            const slotMinutes = parseTimeToMinutes(formData.timeSlot);
-            const currentMinutes = now.getHours() * 60 + now.getMinutes();
-
-            // Only reject if slot is actually in the past
-            if (slotMinutes < currentMinutes) {
-                setSlotError('This time slot has already passed. Please select a later time.');
-                setCheckingSlot(false);
-                return;
-            }
-            // Add 30 min buffer - can't book appointment starting in less than 30 mins
-            if (slotMinutes <= currentMinutes + 30) {
-                setSlotError('This time slot is too soon. Please select a time at least 30 minutes from now.');
-                setCheckingSlot(false);
-                return;
-            }
+            // We trust the backend's availableSlots list
         }
 
         try {
             // 4. Check Availability with backend
-            const availabilityResponse = await checkAvailability(doctor.id, formData.date, formData.timeSlot);
+            const availabilityResponse = await checkAvailability(doctor.id, formData.date, formData.timeSlot, formData.type);
 
             if (!availabilityResponse.data.available) {
                 setSlotError(availabilityResponse.data.message || 'Slot not available');
@@ -339,20 +305,26 @@ const BookAppointment = () => {
                                                 }}
                                                 disabled={!formData.date || availableSlots.length === 0}
                                             >
-                                                <option value="">
-                                                    {!formData.date
-                                                        ? 'Select date first'
-                                                        : availableSlots.length === 0
-                                                            ? 'No slots available today'
-                                                            : 'Select Time'}
-                                                </option>
-                                                {availableSlots.map(slot => (
-                                                    <option key={slot} value={slot}>{slot}</option>
-                                                ))}
+                                                {checkingSlot && !formData.timeSlot ? (
+                                                    <option>Loading slots...</option>
+                                                ) : (
+                                                    <>
+                                                        <option value="">
+                                                            {!formData.date
+                                                                ? 'Select date first'
+                                                                : availableSlots.length === 0
+                                                                    ? 'No slots available today'
+                                                                    : 'Select Time'}
+                                                        </option>
+                                                        {availableSlots.map(slot => (
+                                                            <option key={slot} value={slot}>{slot}</option>
+                                                        ))}
+                                                    </>
+                                                )}
                                             </select>
-                                            {formData.date && availableSlots.length === 0 && (
+                                            {formData.date && availableSlots.length === 0 && !checkingSlot && (
                                                 <p className="text-sm text-orange-600 mt-2">
-                                                    ⚠️ No more slots available for today. Please select another date.
+                                                    ⚠️ No more slots available for this date. Please select another date.
                                                 </p>
                                             )}
                                             {slotError && (

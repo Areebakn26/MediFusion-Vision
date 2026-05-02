@@ -1,4 +1,4 @@
-﻿const { Scan, Report, Patient, User, Doctor, AIFeedback, Appointment } = require('../models');
+const { Scan, Report, Patient, User, Doctor, AIFeedback, Appointment, Notification } = require('../models');
 const axios = require('axios');
 const FormData = require('form-data');
 const { generateReportPDF } = require('../utils/pdfGenerator');
@@ -80,6 +80,29 @@ const uploadScan = (req, res) => {
             });
 
             res.status(201).json(scan);
+
+            // Notify Doctors who have appointments with this patient
+            try {
+                const appointments = await Appointment.findAll({
+                    where: { 
+                        patient_id: patientProfile.id,
+                        status: 'scheduled'
+                    },
+                    include: [{ model: Doctor, include: [User] }]
+                });
+
+                for (const appt of appointments) {
+                    await Notification.create({
+                        user_id: appt.Doctor.User.id,
+                        title: 'New Scan Uploaded',
+                        message: `Patient ${req.user.name} has uploaded a new scan: ${scan.scan_type}.`,
+                        type: 'scan_uploaded',
+                        link: `/doctor/diagnostic/${scan.id}`
+                    });
+                }
+            } catch (notifyError) {
+                console.error("Scan Upload Notification Error:", notifyError);
+            }
         } catch (error) {
             console.error("Upload Scan Error:", error);
             res.status(500).json({ message: 'Server error', error: error.message });
@@ -99,10 +122,14 @@ const getScans = async (req, res) => {
 
             scans = await Scan.findAll({
                 where: { patient_id: patientProfile.id },
-                include: [{
-                    model: Report,
-                    required: false
-                }],
+                include: [
+                    { model: Report, required: false },
+                    {
+                        model: Doctor,
+                        required: false,
+                        include: [{ model: User, attributes: ['name'] }]
+                    }
+                ],
                 order: [['createdAt', 'DESC']]
             });
         } else if (req.user.role === 'doctor') {
@@ -164,7 +191,8 @@ const getScans = async (req, res) => {
                 } : null,
                 scanType: plainScan.scan_type,
                 filePath: plainScan.file_url,
-                aiAnalysis: plainScan.ai_prediction
+                aiAnalysis: plainScan.ai_prediction,
+                doctorName: plainScan.Doctor?.User?.name ? `Dr. ${plainScan.Doctor.User.name}` : null
             };
         });
 
@@ -241,7 +269,7 @@ const getScanById = async (req, res) => {
 // @route   POST /api/scans/:id/report
 // @access  Private (Doctor)
 const createReport = async (req, res) => {
-    const { diagnosis, notes, aiFindings } = req.body;
+    const { diagnosis, notes, aiFindings, report_patient_friendly, recommendations } = req.body;
     const scanId = req.params.id;
 
     try {
@@ -261,6 +289,8 @@ const createReport = async (req, res) => {
             report.diagnosis = diagnosis;
             report.doctor_notes = notes;
             report.ai_findings = aiFindings;
+            report.report_patient_friendly = report_patient_friendly;
+            report.recommendations = recommendations;
             report.finalized = true;
             report.finalized_at = new Date();
             await report.save();
@@ -272,6 +302,8 @@ const createReport = async (req, res) => {
                 diagnosis,
                 doctor_notes: notes,
                 ai_findings: aiFindings,
+                report_patient_friendly,
+                recommendations,
                 finalized: true,
                 finalized_at: new Date()
             });
@@ -294,6 +326,15 @@ const createReport = async (req, res) => {
 
                 const downloadLink = `${process.env.CLIENT_URL || 'http://localhost:5173'}${pdfPath}`;
                 await sendReportReadyEmail(patient.User.email, patient.User.name, downloadLink);
+
+                // In-app Notification for Patient
+                await Notification.create({
+                    user_id: patient.User.id,
+                    title: 'Medical Report Ready',
+                    message: `Your diagnostic report for ${scan.scan_type} has been finalized by Dr. ${doctorProfile.User.name}.`,
+                    type: 'report_ready',
+                    link: `/patient/scans/${scan.id}`
+                });
 
                 console.log(`[REPORT] PDF generated and notification sent for report ${report.id}`);
             } catch (notifyError) {
@@ -619,6 +660,29 @@ const uploadExternalScan = (req, res) => {
                 message: 'Scan uploaded successfully',
                 scan
             });
+
+            // Notify Doctors who have appointments with this patient
+            try {
+                const appointments = await Appointment.findAll({
+                    where: { 
+                        patient_id: patientProfile.id,
+                        status: 'scheduled'
+                    },
+                    include: [{ model: Doctor, include: [User] }]
+                });
+
+                for (const appt of appointments) {
+                    await Notification.create({
+                        user_id: appt.Doctor.User.id,
+                        title: 'New External Scan Uploaded',
+                        message: `Patient ${req.user.name} has uploaded a new external scan: ${scan.scan_type}.`,
+                        type: 'scan_uploaded',
+                        link: `/doctor/diagnostic/${scan.id}`
+                    });
+                }
+            } catch (notifyError) {
+                console.error("Scan Upload Notification Error:", notifyError);
+            }
         } catch (error) {
             console.error("Upload External Scan Error:", error);
             res.status(500).json({ message: 'Server error', error: error.message });

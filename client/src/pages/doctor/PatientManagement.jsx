@@ -1,38 +1,53 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FaSearch, FaFilter, FaHeartbeat, FaHistory } from 'react-icons/fa';
 import { GlassCard, Button, Input, Badge } from '../../components/ui';
 import api from '../../services/api';
 
 const PatientManagement = () => {
+    const navigate = useNavigate();
     const [searchTerm, setSearchTerm] = useState('');
     const [patients, setPatients] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // Mock Data Fetch - replace with api.get('/doctor/patients')
         const fetchPatients = async () => {
             setLoading(true);
             try {
-                // const { data } = await api.get('/doctor/patients');
-                // setPatients(data);
-
-                setTimeout(() => {
-                    setPatients([
-                        { id: 1, name: 'Alice Johnson', age: 32, gender: 'Female', lastVisit: '2023-10-20', condition: 'Migraine', status: 'Stable', image: 'https://randomuser.me/api/portraits/women/44.jpg' },
-                        { id: 2, name: 'Bob Smith', age: 45, gender: 'Male', lastVisit: '2023-10-18', condition: 'Hypertension', status: 'Critical', image: 'https://randomuser.me/api/portraits/men/32.jpg' },
-                        { id: 3, name: 'Charlie Brown', age: 28, gender: 'Male', lastVisit: '2023-10-15', condition: 'Routine Checkup', status: 'Stable', image: 'https://randomuser.me/api/portraits/men/12.jpg' },
-                        { id: 4, name: 'Diana Prince', age: 35, gender: 'Female', lastVisit: '2023-10-10', condition: 'Flu', status: 'Recovered', image: 'https://randomuser.me/api/portraits/women/65.jpg' },
-                    ]);
-                    setLoading(false);
-                }, 500);
+                const { data } = await api.get('/doctors/my-patients');
+                // Backend now returns Patient objects directly (not wrapped in appointment)
+                const formatted = data.map(patient => ({
+                    id: patient.id,
+                    name: patient.User?.name || 'Unknown',
+                    email: patient.User?.email || '',
+                    age: calculateAge(patient.date_of_birth),
+                    gender: patient.gender || 'N/A',
+                    blood_group: patient.blood_group || '—',
+                    lastVisit: patient.lastVisit,
+                    condition: patient.MedicalHistories?.[0]?.condition || patient.medical_history?.[0]?.condition || 'General',
+                    status: patient.MedicalHistories?.[0]?.status || 'Stable',
+                    image: `https://ui-avatars.com/api/?name=${encodeURIComponent(patient.User?.name || 'P')}&background=random`
+                }));
+                setPatients(formatted);
             } catch (error) {
-                console.error("Error fetching patients", error);
+                console.error('Error fetching patients', error);
+            } finally {
                 setLoading(false);
             }
         };
         fetchPatients();
     }, []);
+
+    const calculateAge = (dob) => {
+        if (!dob) return 'N/A';
+        const today = new Date();
+        const birthDate = new Date(dob);
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const m = today.getMonth() - birthDate.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
+        return age;
+    };
 
     const filteredPatients = patients.filter(patient =>
         patient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -103,27 +118,36 @@ const PatientManagement = () => {
                                         </div>
                                         <div>
                                             <h3 className="font-bold text-lg text-gray-800 group-hover:text-primary-blue transition-colors">{patient.name}</h3>
-                                            <p className="text-sm text-gray-500">{patient.age} yrs, {patient.gender}</p>
+                                            <p className="text-sm text-gray-500">{patient.age !== 'N/A' ? `${patient.age} yrs` : 'Age N/A'}, {patient.gender}</p>
+                                            <p className="text-xs text-gray-400">{patient.email}</p>
                                         </div>
                                     </div>
                                     {getStatusBadge(patient.status)}
                                 </div>
 
-                                <div className="space-y-3 mb-6 relative z-10 bg-white/50 p-3 rounded-xl">
+                                <div className="space-y-2 mb-5 relative z-10 bg-white/50 p-3 rounded-xl">
                                     <div className="flex items-center text-sm text-gray-700">
-                                        <FaHeartbeat className="mr-3 text-primary-blue" />
+                                        <FaHeartbeat className="mr-3 text-primary-blue shrink-0" />
                                         <span>Condition: <span className="font-semibold">{patient.condition}</span></span>
                                     </div>
                                     <div className="flex items-center text-sm text-gray-700">
-                                        <FaHistory className="mr-3 text-primary-blue" />
-                                        <span>Last Visit: {new Date(patient.lastVisit).toLocaleDateString()}</span>
+                                        <span className="mr-3 text-lg">🩸</span>
+                                        <span>Blood Group: <span className="font-semibold">{patient.blood_group}</span></span>
+                                    </div>
+                                    <div className="flex items-center text-sm text-gray-700">
+                                        <FaHistory className="mr-3 text-primary-blue shrink-0" />
+                                        <span>Last Visit: {patient.lastVisit ? new Date(patient.lastVisit).toLocaleDateString() : 'N/A'}</span>
                                     </div>
                                 </div>
 
                                 <div className="flex gap-3 relative z-10">
-                                    <Button className="flex-1" size="sm">
-                                        View Profile
-                                    </Button>
+                                    <Button 
+                                        className="flex-1" 
+                                        size="sm"
+                                        onClick={() => navigate(`/doctor/patients/${patient.id}`)}
+                                    >
+                                         View Profile
+                                     </Button>
                                     <Button variant="outline" className="flex-1" size="sm">
                                         Add Note
                                     </Button>

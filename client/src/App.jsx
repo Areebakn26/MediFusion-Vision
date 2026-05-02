@@ -42,8 +42,9 @@ import Schedule from './pages/doctor/Schedule';
 import Diagnostics from './pages/doctor/Diagnostics';
 import PatientManagement from './pages/doctor/PatientManagement';
 import Analytics from './pages/doctor/Analytics';
-import MedicalTools from './pages/doctor/MedicalTools';
 import ProfileCompletion from './pages/doctor/ProfileCompletion';
+import PhysicalConsultationRoom from './pages/doctor/PhysicalConsultationRoom';
+import PatientDetails from './pages/doctor/PatientDetails';
 
 // Admin Pages
 import AdminDashboard from './pages/admin/Dashboard';
@@ -112,10 +113,11 @@ function App() {
               {/* These pages require verification */}
               <Route path="appointments" element={<DoctorVerificationGuard><Schedule /></DoctorVerificationGuard>} />
               <Route path="patients" element={<DoctorVerificationGuard><PatientManagement /></DoctorVerificationGuard>} />
+              <Route path="patients/:patientId" element={<DoctorVerificationGuard><PatientDetails /></DoctorVerificationGuard>} />
               <Route path="diagnostic" element={<DoctorVerificationGuard><Diagnostics /></DoctorVerificationGuard>} />
               <Route path="consultation/:appointmentId" element={<DoctorVerificationGuard><ConsultationRoom /></DoctorVerificationGuard>} />
+              <Route path="physical-consultation/:appointmentId" element={<DoctorVerificationGuard><PhysicalConsultationRoom /></DoctorVerificationGuard>} />
               <Route path="analytics" element={<DoctorVerificationGuard><Analytics /></DoctorVerificationGuard>} />
-              <Route path="tools" element={<DoctorVerificationGuard><MedicalTools /></DoctorVerificationGuard>} />
             </Route>
 
             {/* Admin Routes */}

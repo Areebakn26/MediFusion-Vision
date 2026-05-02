@@ -1,4 +1,4 @@
-const express = require('express');
+const express = require('express'); 
 const cors = require('cors');
 const dotenv = require('dotenv');
 const path = require('path');
@@ -35,6 +35,7 @@ app.use('/api/consultation', require('./routes/consultationRoutes'));
 app.use('/api/payments', require('./routes/paymentRoutes'));
 app.use('/api/doctors', require('./routes/doctorRoutes'));
 app.use('/api/patient', require('./routes/patientSettingsRoutes'));
+app.use('/api/notifications', require('./routes/notificationRoutes'));
 
 // Serve Uploads
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));

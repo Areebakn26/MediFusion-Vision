@@ -23,6 +23,8 @@ const Diagnostics = () => {
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [diagnosis, setDiagnosis] = useState('');
     const [doctorNotes, setDoctorNotes] = useState('');
+    const [patientFriendlySummary, setPatientFriendlySummary] = useState('');
+    const [recommendations, setRecommendations] = useState('');
     const [finalizing, setFinalizing] = useState(false);
     const [showFeedbackModal, setShowFeedbackModal] = useState(false);
     const [feedbackReason, setFeedbackReason] = useState('');
@@ -52,6 +54,8 @@ const Diagnostics = () => {
         setAiAnalysis(null);
         setDiagnosis('');
         setDoctorNotes('');
+        setPatientFriendlySummary('');
+        setRecommendations('');
         setShowHeatmap('original');
         setActiveTab('findings');
         setReportSubmitted(false);
@@ -108,6 +112,8 @@ const Diagnostics = () => {
             await api.post(`/scans/${selectedScan.id || selectedScan._id}/report`, {
                 diagnosis,
                 notes: doctorNotes,
+                report_patient_friendly: patientFriendlySummary,
+                recommendations: recommendations,
                 aiFindings: aiAnalysis
             });
             toast.success('Report finalized! Patient notified.');
@@ -163,7 +169,7 @@ const Diagnostics = () => {
             const link = document.createElement('a');
             link.href = url;
             link.setAttribute('download',
-                `MediFusion_Report_${selectedScan.patient?.name || 'Patient'}_${new Date().toISOString().slice(0, 10)}.pdf`
+                `MediFusion_Report_${selectedScan.Patient?.User?.name || 'Patient'}_${new Date().toISOString().slice(0, 10)}.pdf`
             );
             document.body.appendChild(link);
             link.click();
@@ -206,13 +212,14 @@ const Diagnostics = () => {
 
     // ── Get correct image to show ──
     const getDisplayImage = () => {
-        if (!aiAnalysis?.images) return `http://localhost:5000${selectedScan?.filePath || selectedScan?.file_url}`;
+        const serverBase = import.meta.env.VITE_API_URL.split('/api')[0];
+        if (!aiAnalysis?.images) return `${serverBase}${selectedScan?.filePath || selectedScan?.file_url}`;
         const imgs = aiAnalysis.images;
         if (showHeatmap === 'tumor' && imgs.tumor_heatmap) return `data:image/png;base64,${imgs.tumor_heatmap}`;
         if (showHeatmap === 'alz' && imgs.alz_heatmap) return `data:image/png;base64,${imgs.alz_heatmap}`;
         if (showHeatmap === 'overlay' && imgs.overlay) return `data:image/jpeg;base64,${imgs.overlay}`;
         if (imgs.original) return `data:image/png;base64,${imgs.original}`;
-        return `http://localhost:5000${selectedScan?.filePath || selectedScan?.file_url}`;
+        return `${serverBase}${selectedScan?.filePath || selectedScan?.file_url}`;
     };
 
     // ════════════════════════════════════════════
@@ -590,7 +597,7 @@ const Diagnostics = () => {
                                                 {getStatusBadge(scan.status)}
                                             </div>
                                             <p className="text-sm text-gray-600 truncate">
-                                                {scan.patient?.name || 'Unknown Patient'}
+                                                {scan.Patient?.User?.name || 'Unknown Patient'}
                                             </p>
                                             <p className="text-xs text-gray-400 mt-1">
                                                 {new Date(scan.createdAt).toLocaleDateString()}
@@ -628,7 +635,7 @@ const Diagnostics = () => {
                                                 {(selectedScan.scanType || selectedScan.scan_type || 'Medical').replace('_', ' ')} Analysis
                                             </h2>
                                             <p className="text-gray-500">
-                                                Patient: <span className="font-medium">{selectedScan.patient?.name || 'Unknown'}</span>
+                                                Patient: <span className="font-medium">{selectedScan.Patient?.User?.name || 'Unknown'}</span>
                                                 {isBrainScan(selectedScan) && (
                                                     <span className="ml-2 text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">
                                                         🧠 Brain MRI — Tumor + Alzheimer's
@@ -717,7 +724,7 @@ const Diagnostics = () => {
                                             < div className="bg-gray-50 rounded-xl p-4" >
                                                 <h4 className="font-semibold text-gray-700 mb-3 flex items-center gap-2"><FaFileAlt /> Scan Information</h4>
                                                 <div className="grid grid-cols-2 gap-3 text-sm">
-                                                    <div><span className="text-gray-500">Patient:</span><span className="ml-2 font-medium">{selectedScan.patient?.name || 'N/A'}</span></div>
+                                                    <div><span className="text-gray-500">Patient:</span><span className="ml-2 font-medium">{selectedScan.Patient?.User?.name || 'N/A'}</span></div>
                                                     <div><span className="text-gray-500">Type:</span><span className="ml-2 font-medium capitalize">{(selectedScan.scanType || selectedScan.scan_type || 'N/A').replace('_', ' ')}</span></div>
                                                     <div><span className="text-gray-500">Source:</span><span className="ml-2 font-medium capitalize">{selectedScan.scan_source || 'External'}</span></div>
                                                     <div><span className="text-gray-500">Uploaded:</span><span className="ml-2 font-medium">{new Date(selectedScan.createdAt).toLocaleDateString()}</span></div>
@@ -798,11 +805,47 @@ const Diagnostics = () => {
                                                                 <Input value={diagnosis} onChange={(e) => setDiagnosis(e.target.value)} placeholder="Enter final diagnosis..." required />
                                                             </div>
                                                             <div>
-                                                                <label className="block text-sm font-medium text-gray-700 mb-2">Clinical Notes & Recommendations</label>
-                                                                <textarea rows={4}
-                                                                    className="w-full px-4 py-3 rounded-xl bg-white border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all resize-none"
+                                                                <div className="flex justify-between items-center mb-2">
+                                                                    <label className="block text-sm font-medium text-gray-700">Patient-Friendly Summary</label>
+                                                                    <button 
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            if (!aiAnalysis) return;
+                                                                            if (isBrainScan(selectedScan)) {
+                                                                                const t = aiAnalysis.tumor?.is_detected ? "A growth or mass has been identified in the brain tissue that needs further investigation." : "The scan shows no signs of abnormal growths or tumors.";
+                                                                                const a = aiAnalysis.alzheimer?.prediction === 'NonDemented' ? "Brain volume and structures appear normal for your age." : `The analysis shows some changes in brain structure consistent with ${aiAnalysis.alzheimer?.prediction?.replace(/([A-Z])/g, ' $1').trim()}.`;
+                                                                                setPatientFriendlySummary(`${t} ${a} Please consult with your specialist for a detailed management plan.`);
+                                                                            } else {
+                                                                                const cond = aiAnalysis.prediction?.class_name?.replace(/_/g, ' ') || 'normal';
+                                                                                if (cond === 'normal') setPatientFriendlySummary("Your retinal scan looks healthy. No signs of disease were detected.");
+                                                                                else setPatientFriendlySummary(`The analysis identified patterns consistent with ${cond}. This suggests some changes in the eye that require professional review.`);
+                                                                            }
+                                                                        }}
+                                                                        className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                                                                    >
+                                                                        <FaRobot /> Suggest Summary
+                                                                    </button>
+                                                                </div>
+                                                                <textarea rows={3}
+                                                                    className="w-full px-4 py-3 rounded-xl bg-blue-50/30 border border-blue-100 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all resize-none text-sm text-blue-900"
+                                                                    value={patientFriendlySummary} onChange={(e) => setPatientFriendlySummary(e.target.value)}
+                                                                    placeholder="Write a simplified summary for the patient to understand..." required />
+                                                            </div>
+
+                                                            <div>
+                                                                <label className="block text-sm font-medium text-gray-700 mb-2">Detailed Physician Notes (Technical)</label>
+                                                                <textarea rows={3}
+                                                                    className="w-full px-4 py-3 rounded-xl bg-white border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all resize-none text-sm"
                                                                     value={doctorNotes} onChange={(e) => setDoctorNotes(e.target.value)}
-                                                                    placeholder="Add clinical notes, recommendations, follow-up instructions..." required />
+                                                                    placeholder="Add technical clinical notes..." required />
+                                                            </div>
+
+                                                            <div>
+                                                                <label className="block text-sm font-medium text-gray-700 mb-2">Recommendations & Follow-up</label>
+                                                                <textarea rows={2}
+                                                                    className="w-full px-4 py-3 rounded-xl bg-white border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all resize-none text-sm"
+                                                                    value={recommendations} onChange={(e) => setRecommendations(e.target.value)}
+                                                                    placeholder="e.g. Schedule MRI in 6 months, Consult Neurology..." required />
                                                             </div>
                                                             <div className="flex gap-3">
                                                                 <Button type="submit" size="lg" className="flex-1 shadow-lg">

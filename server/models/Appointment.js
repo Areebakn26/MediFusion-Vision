@@ -86,13 +86,15 @@ const Appointment = sequelize.define('Appointment', {
     indexes: [
         {
             unique: true,
-            fields: ['doctor_id', 'date', 'time_slot'], // Keeping time_slot for now as primary slot identifier
+            fields: ['doctor_id', 'date', 'time_slot'],
             name: 'unique_doctor_appointment_slot',
-            where: {
-                status: {
-                    [Op.ne]: 'cancelled'
-                }
-            }
+            where: { status: { [Op.ne]: 'cancelled' } }
+        },
+        {
+            unique: true,
+            fields: ['patient_id', 'date', 'time_slot'],
+            name: 'unique_patient_appointment_slot',
+            where: { status: { [Op.ne]: 'cancelled' } }
         }
     ]
 });

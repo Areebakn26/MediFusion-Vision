@@ -166,11 +166,15 @@ const MyScans = () => {
                                 <GlassCard className="overflow-hidden group">
                                     {/* Scan Preview */}
                                     <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center overflow-hidden">
-                                        {scan.file_path ? (
+                                        {scan.file_url ? (
                                             <img
-                                                src={`${import.meta.env.VITE_API_URL}${scan.file_path}`}
+                                                src={`${import.meta.env.VITE_API_URL.split('/api')[0]}${scan.file_url}`}
                                                 alt={scan.scan_type}
                                                 className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                                                onError={(e) => {
+                                                    e.target.onerror = null;
+                                                    e.target.src = 'https://prod-images-static.radiopaedia.org/images/157210/332ea09151e9639f66a439777d617d_jumbo.jpg';
+                                                }}
                                             />
                                         ) : (
                                             <span className="text-6xl">{getScanIcon(scan.scan_type)}</span>
@@ -231,9 +235,9 @@ const MyScans = () => {
                                                     View Results
                                                 </Button>
                                             </Link>
-                                            {scan.file_path && (
+                                            {scan.file_url && (
                                                 <a
-                                                    href={`${import.meta.env.VITE_API_URL}${scan.file_path}`}
+                                                    href={`${import.meta.env.VITE_API_URL}${scan.file_url}`}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
                                                 >

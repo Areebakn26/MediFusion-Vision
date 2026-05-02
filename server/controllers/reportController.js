@@ -1,4 +1,4 @@
-const { Patient, User, Appointment, Doctor } = require('../models');
+const { Patient, User, Appointment, Doctor, Notification } = require('../models');
 const { sendReportReadyEmail } = require('../utils/emailService');
 
 // @desc    Generate a medical report for a patient
@@ -6,7 +6,7 @@ const { sendReportReadyEmail } = require('../utils/emailService');
 // @access  Private (Doctor)
 const generateReport = async (req, res) => {
     // In Task 2, this will receive actual diagnosis and prescription data to generate a PDF.
-    const { appointmentId, patientId, diagnosis, prescription } = req.body;
+    const { appointmentId, patientId, diagnosis, prescription, scanId } = req.body;
 
     try {
         // 1. Verify doctor authorization
@@ -17,24 +17,30 @@ const generateReport = async (req, res) => {
 
         // 2. Find the patient to get their email and name
         const patient = await Patient.findByPk(patientId, {
-            include: [{ model: User, attributes: ['name', 'email'] }]
+            include: [{ model: User, attributes: ['id', 'name', 'email'] }]
         });
 
         if (!patient || !patient.User) {
             return res.status(404).json({ message: 'Patient not found.' });
         }
 
-        // 3. TODO (Task 2): Actual PDF Generation Logic Here
-        console.log(`[REPORT] Generating PDF report for ${patient.User.name}...`);
-
-        // Mocking the PDF generation and saving to cloud storage
+        // 3. Mocking the PDF generation
         const mockReportUrl = `http://localhost:5000/api/reports/download/mock-report-${Date.now()}.pdf`;
 
-        // 4. Send the Report Ready Email notification
+        // 4. Create In-App Notification
+        await Notification.create({
+            user_id: patient.User.id,
+            title: 'Diagnostic Report Ready',
+            message: `Your diagnostic report for the recent consultation is now available.`,
+            type: 'report',
+            data: { appointmentId, scanId }
+        });
+
+        // 5. Send Email
         await sendReportReadyEmail(patient.User.email, patient.User.name, mockReportUrl);
 
         res.status(200).json({
-            message: 'Report generated successfully and notification sent to the patient.',
+            message: 'Report generated successfully and patient notified.',
             reportUrl: mockReportUrl
         });
 

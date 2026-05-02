@@ -3,6 +3,7 @@ const router = express.Router();
 const {
     bookAppointment,
     getAppointments,
+    getAppointmentById,
     updateAppointmentStatus,
     checkAvailability,
     cancelAppointment,
@@ -17,6 +18,7 @@ router.get('/', protect, getAppointments);
 router.get('/check-availability', checkAvailability);
 router.get('/available-slots', getAvailableSlots);
 
+router.get('/:id', protect, getAppointmentById);
 router.put('/:id/status', protect, requireRole(['doctor', 'admin']), updateAppointmentStatus);
 router.put('/:id/reschedule', protect, requireRole(['patient']), rescheduleAppointment);
 router.post('/:id/mark-no-show', protect, requireRole(['doctor']), markNoShow);

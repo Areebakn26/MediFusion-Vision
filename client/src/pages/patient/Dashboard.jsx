@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { GlassCard, Button, Badge, Modal } from '../../components/ui';
-import api, { rescheduleAppointment, cancelAppointment } from '../../services/api';
+import api, { rescheduleAppointment, cancelAppointment, getConsultationPatientSummary } from '../../services/api';
 import { toast } from 'react-hot-toast';
 import {
     FaCalendarAlt,
@@ -20,6 +20,7 @@ const PatientDashboard = () => {
     const [appointments, setAppointments] = useState([]);
     const [scans, setScans] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [aiSummaryModal, setAiSummaryModal] = useState({ isOpen: false, summary: null, loading: false });
     const [showRescheduleModal, setShowRescheduleModal] = useState(false);
     const [selectedAppointment, setSelectedAppointment] = useState(null);
     const [newDate, setNewDate] = useState('');
@@ -102,19 +103,33 @@ const PatientDashboard = () => {
         fetchSlots();
     }, [newDate, selectedAppointment]);
 
-    // Check if appointment is joinable (within 15 mins before and up to 30 mins after)
+    // Check if appointment is joinable: any confirmed virtual appointment on today's date
     const isJoinable = (apt) => {
         if (apt.status !== 'confirmed' && apt.status !== 'pending') return false;
         if (apt.type !== 'virtual') return false;
 
+        const aptDateStr = new Date(apt.date).toLocaleDateString('en-CA');
+        const todayStr = currentTime.toLocaleDateString('en-CA');
+        // Allow joining any today's virtual appointment regardless of exact time
+        if (aptDateStr === todayStr) return true;
+
+        // For future appointments, allow joining 15 mins before
         const appointmentTime = parseTimeSlot(apt.date, apt.time_slot || apt.timeSlot);
         if (!appointmentTime) return false;
-
-        const now = currentTime;
         const fifteenMinsBefore = new Date(appointmentTime.getTime() - 15 * 60 * 1000);
-        const thirtyMinsAfter = new Date(appointmentTime.getTime() + 30 * 60 * 1000);
+        return currentTime >= fifteenMinsBefore;
+    };
 
-        return now >= fifteenMinsBefore && now <= thirtyMinsAfter;
+    // Get human-readable virtual appointment status
+    const getVirtualStatus = (apt) => {
+        if (apt.status === 'completed') return { label: 'Session Ended', color: 'bg-green-100 text-green-700' };
+        if (apt.status === 'cancelled') return { label: 'Cancelled', color: 'bg-red-100 text-red-700' };
+        const aptDateStr = new Date(apt.date).toLocaleDateString('en-CA');
+        const todayStr = currentTime.toLocaleDateString('en-CA');
+        if (aptDateStr === todayStr) return { label: 'Today — Ready to Join', color: 'bg-blue-100 text-blue-700' };
+        const appointmentTime = parseTimeSlot(apt.date, apt.time_slot || apt.timeSlot);
+        if (appointmentTime && currentTime < appointmentTime) return { label: 'Scheduled', color: 'bg-gray-100 text-gray-600' };
+        return { label: 'Upcoming', color: 'bg-yellow-100 text-yellow-700' };
     };
 
     const handleJoinCall = (apt) => {
@@ -308,6 +323,21 @@ const PatientDashboard = () => {
         .filter(apt => apt.status !== 'cancelled' && apt.status !== 'completed' && isUpcoming(apt))
         .slice(0, 3);
 
+    const completedAppointments = appointments
+        .filter(apt => apt.status === 'completed')
+        .slice(0, 3);
+
+    const handleViewAISummary = async (apt) => {
+        setAiSummaryModal({ isOpen: true, summary: null, loading: true });
+        try {
+            const { data } = await getConsultationPatientSummary(apt.id || apt._id);
+            setAiSummaryModal({ isOpen: true, summary: data.patientSummary, loading: false });
+        } catch {
+            toast.error('Could not load consultation summary');
+            setAiSummaryModal({ isOpen: false, summary: null, loading: false });
+        }
+    };
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-off-white to-pastel-blue/20 p-6">
             {/* Welcome Header */}
@@ -417,28 +447,30 @@ const PatientDashboard = () => {
                                                         {apt.type}
                                                     </Badge>
 
-                                                    {/* Join Call button for virtual appointments */}
-                                                    {apt.type === 'virtual' && (
-                                                        <>
-                                                            {isJoinable(apt) ? (
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={(e) => {
-                                                                        e.preventDefault();
-                                                                        e.stopPropagation();
-                                                                        handleJoinCall(apt);
-                                                                    }}
-                                                                    className="px-4 py-2.5 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 active:bg-green-800 transition-all text-sm flex items-center gap-2 shadow-lg shadow-green-200 border-2 border-green-500 cursor-pointer"
-                                                                >
-                                                                    <FaVideo className="text-base" /> Join Call Now
-                                                                </button>
-                                                            ) : apt.status === 'confirmed' ? (
-                                                                <span className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg text-xs font-medium border border-gray-200">
-                                                                    Join available at appointment time
+                                                    {/* Virtual appointment status + Join */}
+                                                    {apt.type === 'virtual' && (() => {
+                                                        const vs = getVirtualStatus(apt);
+                                                        return (
+                                                            <>
+                                                                <span className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${vs.color}`}>
+                                                                    {vs.label}
                                                                 </span>
-                                                            ) : null}
-                                                        </>
-                                                    )}
+                                                                {isJoinable(apt) && (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={(e) => {
+                                                                            e.preventDefault();
+                                                                            e.stopPropagation();
+                                                                            handleJoinCall(apt);
+                                                                        }}
+                                                                        className="px-4 py-2.5 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 active:bg-green-800 transition-all text-sm flex items-center gap-2 shadow-lg shadow-green-200 border-2 border-green-500 cursor-pointer"
+                                                                    >
+                                                                        <FaVideo className="text-base" /> Join Call Now
+                                                                    </button>
+                                                                )}
+                                                            </>
+                                                        );
+                                                    })()}
 
                                                     {/* Reschedule button - only for upcoming appointments */}
                                                     {apt.status !== 'cancelled' && apt.status !== 'completed' && isUpcoming(apt) && (
@@ -465,6 +497,41 @@ const PatientDashboard = () => {
                                     </motion.div>
                                 );
                             })}
+                        </div>
+                    )}
+
+                    {/* Past Consultations with AI Summaries */}
+                    {completedAppointments.length > 0 && (
+                        <div>
+                            <h2 className="text-2xl font-bold text-gray-800 mb-4">Past Consultations</h2>
+                            <div className="space-y-4">
+                                {completedAppointments.map((apt) => {
+                                    const appointmentId = apt.id || apt._id;
+                                    return (
+                                        <GlassCard key={appointmentId} className="p-4">
+                                            <div className="flex items-center justify-between gap-4">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 bg-gradient-to-r from-green-400 to-teal-500 rounded-full flex items-center justify-center text-white">
+                                                        <FaUserMd />
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-semibold text-gray-800 text-sm">
+                                                            {apt.Doctor?.User?.name || 'Doctor'}
+                                                        </p>
+                                                        <p className="text-xs text-gray-500">{apt.date} &middot; {apt.type}</p>
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    onClick={() => handleViewAISummary(apt)}
+                                                    className="px-3 py-1.5 bg-teal-50 text-teal-700 rounded-lg text-xs font-semibold border border-teal-200 hover:bg-teal-100 transition-colors whitespace-nowrap"
+                                                >
+                                                    View AI Summary
+                                                </button>
+                                            </div>
+                                        </GlassCard>
+                                    );
+                                })}
+                            </div>
                         </div>
                     )}
                 </div>
@@ -757,6 +824,22 @@ const PatientDashboard = () => {
                             </button>
                         </div>
                     </div>
+                )}
+            </Modal>
+
+            {/* AI Consultation Summary Modal */}
+            <Modal
+                isOpen={aiSummaryModal.isOpen}
+                onClose={() => setAiSummaryModal({ isOpen: false, summary: null, loading: false })}
+                title="Your Consultation Summary"
+                size="md"
+            >
+                {aiSummaryModal.loading ? (
+                    <p className="text-center text-gray-500 animate-pulse py-4">Loading summary...</p>
+                ) : aiSummaryModal.summary ? (
+                    <p className="text-gray-700 leading-relaxed">{aiSummaryModal.summary}</p>
+                ) : (
+                    <p className="text-center text-gray-500 italic py-4">No AI summary available for this consultation yet.</p>
                 )}
             </Modal>
         </div>

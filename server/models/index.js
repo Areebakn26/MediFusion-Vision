@@ -15,6 +15,7 @@ const AIFeedback = require('./AIFeedback');
 const ChatLog = require('./ChatLog');
 const Report = require('./Report');
 const ConsultationNote = require('./ConsultationNote');
+const Notification = require('./Notification');
 
 // Define Associations
 
@@ -64,6 +65,10 @@ ConsultationNote.belongsTo(Appointment, { foreignKey: 'appointment_id' });
 User.hasMany(ConsultationNote, { foreignKey: 'author_id', as: 'authoredNotes' });
 ConsultationNote.belongsTo(User, { foreignKey: 'author_id', as: 'author' });
 
+// User -> Notifications (1:M)
+User.hasMany(Notification, { foreignKey: 'user_id', onDelete: 'CASCADE' });
+Notification.belongsTo(User, { foreignKey: 'user_id' });
+
 // Scans
 Patient.hasMany(Scan, { foreignKey: 'patient_id', onDelete: 'CASCADE' });
 Scan.belongsTo(Patient, { foreignKey: 'patient_id' });
@@ -102,5 +107,6 @@ module.exports = {
     AIFeedback,
     ChatLog,
     Report,
-    ConsultationNote
+    ConsultationNote,
+    Notification
 };

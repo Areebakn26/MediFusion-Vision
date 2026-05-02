@@ -28,6 +28,9 @@ const Report = sequelize.define('Report', {
     report_patient_friendly: {
         type: DataTypes.TEXT, // Simplified for patients
     },
+    recommendations: {
+        type: DataTypes.TEXT, // Follow-up advice
+    },
     finalized: {
         type: DataTypes.BOOLEAN,
         defaultValue: false,

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getAppointments, updateAppointmentStatus } from '../../services/api';
+import { getAppointments, updateAppointmentStatus, getMe, updateProfile } from '../../services/api';
 import { GlassCard, Button, Badge } from '../../components/ui';
 import { FaVideo, FaBell, FaUserInjured, FaCalendarCheck, FaHistory } from 'react-icons/fa';
 import { toast } from 'react-hot-toast';
@@ -34,7 +34,33 @@ const Schedule = () => {
 
     useEffect(() => {
         fetchAppointments();
+        loadAvailability();
     }, []);
+
+    const loadAvailability = async () => {
+        try {
+            const { data } = await getMe();
+            const wh = data?.profile?.working_hours;
+            if (wh) {
+                setAvailability(prev => {
+                    const merged = { ...prev };
+                    Object.keys(merged).forEach(day => {
+                        if (wh[day]) {
+                            const dayData = wh[day].physical || wh[day];
+                            merged[day] = {
+                                start: dayData.start || '',
+                                end: dayData.end || '',
+                                active: !!dayData.start
+                            };
+                        }
+                    });
+                    return merged;
+                });
+            }
+        } catch (error) {
+            console.error('Error loading availability', error);
+        }
+    };
 
     const fetchAppointments = async () => {
         setLoading(true);
@@ -61,19 +87,19 @@ const Schedule = () => {
         return date;
     };
 
-    // Check if appointment is joinable
+    // Check if appointment is joinable/startable
+    // Rules: status must be 'confirmed' or 'in_progress', within 15 min before → 60 min after appointment time
     const isJoinable = (app) => {
-        if (app.status !== 'confirmed') return false;
-        if (app.type !== 'virtual') return false;
+        if (!['confirmed', 'in_progress'].includes(app.status)) return false; // completed/cancelled never joinable
 
         const appointmentTime = parseTimeSlot(app.date, app.timeSlot || app.time_slot);
         if (!appointmentTime) return false;
 
         const now = currentTime;
         const fifteenMinsBefore = new Date(appointmentTime.getTime() - 15 * 60 * 1000);
-        const thirtyMinsAfter = new Date(appointmentTime.getTime() + 30 * 60 * 1000);
+        const sixtyMinsAfter = new Date(appointmentTime.getTime() + 60 * 60 * 1000);
 
-        return now >= fifteenMinsBefore && now <= thirtyMinsAfter;
+        return now >= fifteenMinsBefore && now <= sixtyMinsAfter;
     };
 
     // Check if appointment is upcoming
@@ -120,7 +146,16 @@ const Schedule = () => {
 
     const handleJoinCall = (app) => {
         const appointmentId = app._id || app.id;
-        navigate(`/doctor/consultation/${appointmentId}`);
+        if (app.status === 'completed') {
+            const patientId = app.patient?.id;
+            navigate(patientId ? `/doctor/patients/${patientId}` : '/doctor/appointments');
+            return;
+        }
+        if (app.type === 'physical') {
+            navigate(`/doctor/physical-consultation/${appointmentId}`);
+        } else {
+            navigate(`/doctor/consultation/${appointmentId}`);
+        }
     };
 
     const handleAvailabilityChange = (day, field, value) => {
@@ -132,8 +167,13 @@ const Schedule = () => {
 
     const saveAvailability = async () => {
         try {
-            // TODO: Implement backend endpoint
-            // await api.put('/auth/profile', { workingHours: availability });
+            const workingHours = {};
+            Object.entries(availability).forEach(([day, schedule]) => {
+                if (schedule.active) {
+                    workingHours[day] = { start: schedule.start, end: schedule.end };
+                }
+            });
+            await updateProfile({ workingHours });
             toast.success('Availability saved successfully!');
         } catch (error) {
             console.error("Error saving availability", error);
@@ -143,7 +183,7 @@ const Schedule = () => {
 
     const filteredAppointments = appointments.filter(app => {
         const upcoming = isUpcoming(app);
-        if (filterStatus === 'upcoming') return (app.status === 'confirmed' || app.status === 'pending') && upcoming;
+        if (filterStatus === 'upcoming') return (app.status === 'confirmed' || app.status === 'pending' || app.status === 'in_progress') && upcoming;
         if (filterStatus === 'pending') return app.status === 'pending';
         if (filterStatus === 'history') return ['completed', 'cancelled'].includes(app.status) || !upcoming;
         return true;
@@ -237,21 +277,29 @@ const Schedule = () => {
                                                     }`}>
                                                     {/* Joinable Alert */}
                                                     {joinable && (
-                                                        <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-xl flex items-center justify-between">
+                                                        <div className={`mb-4 p-3 border rounded-xl flex items-center justify-between ${app.type === 'physical' ? 'bg-blue-50 border-blue-200' : 'bg-green-50 border-green-200'}`}>
                                                             <div className="flex items-center gap-3">
-                                                                <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center animate-pulse">
+                                                                <div className={`w-10 h-10 rounded-full flex items-center justify-center animate-pulse ${app.type === 'physical' ? 'bg-blue-500' : 'bg-green-500'}`}>
                                                                     <FaBell className="text-white" />
                                                                 </div>
                                                                 <div>
-                                                                    <p className="font-bold text-green-700">Patient is Waiting!</p>
-                                                                    <p className="text-sm text-green-600">Virtual consultation ready to start</p>
+                                                                    <p className={`font-bold ${app.type === 'physical' ? 'text-blue-700' : 'text-green-700'}`}>
+                                                                        {app.type === 'physical' ? 'Physical Visit Starting Soon!' : 'Patient is Waiting!'}
+                                                                    </p>
+                                                                    <p className={`text-sm ${app.type === 'physical' ? 'text-blue-600' : 'text-green-600'}`}>
+                                                                        {app.type === 'physical' ? 'In-person consultation ready to start' : 'Virtual consultation ready to start'}
+                                                                    </p>
                                                                 </div>
                                                             </div>
                                                             <button
                                                                 onClick={() => handleJoinCall(app)}
-                                                                className="px-6 py-3 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition-colors flex items-center gap-2"
+                                                                className={`px-6 py-3 text-white rounded-xl font-bold transition-colors flex items-center gap-2 ${app.type === 'physical' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-green-600 hover:bg-green-700'}`}
                                                             >
-                                                                <FaVideo /> Join Now
+                                                                {app.type === 'physical' ? (
+                                                                    <>Start Session</>
+                                                                ) : (
+                                                                    <><FaVideo /> Join Now</>
+                                                                )}
                                                             </button>
                                                         </div>
                                                     )}
@@ -267,9 +315,10 @@ const Schedule = () => {
                                                                     {app.patient?.name || 'Patient'}
                                                                 </h3>
                                                                 <div className="text-sm text-gray-500 flex items-center flex-wrap gap-2 mt-1">
-                                                                    {app.patient?.gender && app.patient?.age && (
+                                                                    {app.patient?.gender && app.patient?.date_of_birth && (
                                                                         <span className="bg-gray-100 px-2 py-0.5 rounded text-gray-600">
-                                                                            {app.patient.gender}, {app.patient.age} yrs
+                                                                            {app.patient.gender},{' '}
+                                                                            {Math.floor((Date.now() - new Date(app.patient.date_of_birth)) / (365.25 * 24 * 60 * 60 * 1000))} yrs
                                                                         </span>
                                                                     )}
                                                                     <span className="flex items-center gap-1">
@@ -315,7 +364,7 @@ const Schedule = () => {
                                                                     </Button>
                                                                 </>
                                                             )}
-                                                            {app.status === 'confirmed' && !joinable && (
+                                                            {['confirmed', 'in_progress'].includes(app.status) && !joinable && (
                                                                 <>
                                                                     <Button
                                                                         variant="outline"
@@ -332,9 +381,30 @@ const Schedule = () => {
                                                                 </>
                                                             )}
                                                             {['completed', 'cancelled'].includes(app.status) && (
-                                                                <Badge variant={app.status === 'completed' ? 'success' : 'danger'} size="lg">
-                                                                    {app.status.toUpperCase()}
-                                                                </Badge>
+                                                                <div className="flex items-center gap-3">
+                                                                    <Badge variant={app.status === 'completed' ? 'success' : 'danger'} size="lg">
+                                                                        {app.status.toUpperCase()}
+                                                                    </Badge>
+                                                                    {app.status === 'completed' && (
+                                                                        <Button 
+                                                                            variant="outline" 
+                                                                            size="sm"
+                                                                            onClick={() => handleJoinCall(app)}
+                                                                        >
+                                                                            View Notes
+                                                                        </Button>
+                                                                    )}
+                                                                </div>
+                                                            )}
+                                                            {/* Add button for "In Progress" appointments in History tab */}
+                                                            {filterStatus === 'history' && !['completed', 'cancelled'].includes(app.status) && (
+                                                                <Button 
+                                                                    size="sm"
+                                                                    className="bg-blue-600"
+                                                                    onClick={() => handleJoinCall(app)}
+                                                                >
+                                                                    Go to Consultation
+                                                                </Button>
                                                             )}
                                                         </div>
                                                     </div>

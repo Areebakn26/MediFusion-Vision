@@ -14,10 +14,11 @@ import {
     FaQuestionCircle,
     FaGlobe,
     FaUserCog,
-    FaChartLine,
-    FaTools
+    FaChartLine
 } from 'react-icons/fa';
 import { useState, useEffect } from 'react';
+import NotificationBell from '../components/NotificationBell';
+
 
 const MainLayout = () => {
     const { user, logout } = useAuth();
@@ -53,7 +54,6 @@ const MainLayout = () => {
         { path: '/doctor/patients', label: t('patients', 'Patients'), icon: <FaUserMd /> },
         { path: '/doctor/diagnostic', label: t('diagnostics', 'Diagnostics'), icon: <FaFileUpload /> },
         { path: '/doctor/analytics', label: t('analytics', 'Analytics'), icon: <FaChartLine /> },
-        { path: '/doctor/tools', label: t('medicalTools', 'Medical Tools'), icon: <FaTools /> },
     ];
 
     const adminLinks = [
@@ -245,6 +245,9 @@ const MainLayout = () => {
                             <FaGlobe />
                             <span className="font-medium">{language === 'en' ? 'English' : 'اردو'}</span>
                         </button>
+
+                        {/* Notifications */}
+                        <NotificationBell />
                     </div>
                 </header>
 

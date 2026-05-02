@@ -40,7 +40,7 @@ router.post('/:id/analyze', protect, requireRole(['doctor', 'admin']), runAIAnal
 router.post('/:id/analyze-brain', protect, requireRole(['doctor', 'admin']), runBrainAIAnalysis);
 
 // Ye line add karo scanRoutes.js mein
-router.post('/:id/report/pdf', protect, requireRole(['doctor']), generatePDFReport);
+router.post('/:id/report/pdf', protect, requireRole(['doctor', 'patient']), generatePDFReport);
 
 // Create/Update report (Doctor only)
 router.post('/:id/report', protect, requireRole(['doctor']), createReport);
