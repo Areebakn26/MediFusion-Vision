@@ -34,6 +34,8 @@ const Diagnostics = () => {
     const [activeTab, setActiveTab] = useState('findings');
     const [reportSubmitted, setReportSubmitted] = useState(false);
     const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+    const [correctedDiagnosis, setCorrectedDiagnosis] = useState('');
+    const [feedbackNotes, setFeedbackNotes] = useState('');
 
     useEffect(() => { fetchScans(); }, []);
 
@@ -131,25 +133,56 @@ const Diagnostics = () => {
         }
     };
 
-    const handleDisapprove = async () => {
-        if (!selectedScan || !aiAnalysis || !feedbackReason) return;
+    const handleSubmitFeedback = async () => {
+        console.log('[Feedback] Submit clicked — correctedDiagnosis:', correctedDiagnosis, '| feedbackReason:', feedbackReason, '| selectedScan:', !!selectedScan, '| aiAnalysis:', !!aiAnalysis);
+        if (!correctedDiagnosis) {
+            toast.error('Please select a corrected diagnosis.');
+            return;
+        }
+        if (!feedbackReason) {
+            toast.error('Please select a reason.');
+            return;
+        }
+        if (!selectedScan || !aiAnalysis) {
+            console.error('[Feedback] Blocked — selectedScan or aiAnalysis is null');
+            toast.error('No scan or analysis loaded. Please run AI analysis first.');
+            return;
+        }
 
         setSubmittingFeedback(true);
         try {
-            await api.post(`/scans/${selectedScan.id || selectedScan._id}/feedback`, {
-                aiAnalysisId: aiAnalysis.id, // Assuming AI analysis has an ID
-                reason: feedbackReason,
-                status: 'disapproved'
-            });
-            toast.success('Feedback submitted. AI analysis flagged for review.');
+            // Extract prediction + confidence based on scan type
+            let aiPrediction, aiConfidence, modelVersion;
+            if (isBrainScan(selectedScan)) {
+                aiPrediction  = aiAnalysis.tumor?.prediction || 'unknown';
+                aiConfidence  = (aiAnalysis.tumor?.confidence || 0) / 100;
+                modelVersion  = aiAnalysis.model_version?.tumor_model || 'v1.0';
+            } else {
+                aiPrediction  = aiAnalysis.prediction?.class_name || 'unknown';
+                aiConfidence  = (aiAnalysis.prediction?.confidence || 0) / 100;
+                modelVersion  = aiAnalysis.model_version || 'v1.0';
+            }
+
+            const payload = {
+                scan_id:             selectedScan.id || selectedScan._id,
+                ai_prediction:       aiPrediction,
+                ai_confidence:       aiConfidence,
+                corrected_diagnosis: correctedDiagnosis,
+                doctor_notes:        feedbackNotes || null,
+                feedback_reason:     feedbackReason,
+                model_version:       modelVersion,
+            };
+            console.log('[Feedback] Sending payload:', payload);
+            await api.post('/feedback', payload);
+
+            toast.success('Feedback submitted successfully');
             setShowFeedbackModal(false);
+            setCorrectedDiagnosis('');
+            setFeedbackNotes('');
             setFeedbackReason('');
-            // Optionally, clear AI analysis or mark scan as 'flagged'
-            // setAiAnalysis(null);
-            // fetchScans(); // Refresh scans to show updated status
         } catch (error) {
-            console.error("Error submitting feedback", error);
-            toast.error('Failed to submit feedback.');
+            console.error('Feedback error:', error);
+            toast.error(error.response?.data?.message || 'Failed to submit feedback');
         } finally {
             setSubmittingFeedback(false);
         }
@@ -208,6 +241,29 @@ const Diagnostics = () => {
     const getPriorityColor = (priority) => {
         const map = { critical: 'bg-red-100 text-red-700 border-red-200', high: 'bg-orange-100 text-orange-700 border-orange-200', medium: 'bg-yellow-100 text-yellow-700 border-yellow-200', low: 'bg-green-100 text-green-700 border-green-200' };
         return map[priority] || 'bg-gray-100 text-gray-700 border-gray-200';
+    };
+
+    // ── Diagnosis dropdown options based on scan type ──
+    const getDiagnosisOptions = () => {
+        const scanType = selectedScan?.scan_type || selectedScan?.scanType;
+        if (scanType === 'mri_brain') {
+            return [
+                { value: 'glioma',                    label: 'Glioma (Tumor)' },
+                { value: 'meningioma',                label: 'Meningioma (Tumor)' },
+                { value: 'pituitary',                 label: 'Pituitary Tumor' },
+                { value: 'no_tumor',                  label: 'No Tumor' },
+                { value: 'mild_cognitive_impairment', label: 'Mild Cognitive Impairment (Alzheimer\'s)' },
+                { value: 'moderate',                  label: 'Moderate (Alzheimer\'s)' },
+                { value: 'very_mild',                 label: 'Very Mild (Alzheimer\'s)' },
+                { value: 'non_demented',              label: 'Non-Demented (Alzheimer\'s)' },
+            ];
+        }
+        return [
+            { value: 'diabetic_retinopathy', label: 'Diabetic Retinopathy' },
+            { value: 'glaucoma',             label: 'Glaucoma' },
+            { value: 'normal',               label: 'Normal' },
+            { value: 'cataract',             label: 'Cataract' },
+        ];
     };
 
     // ── Get correct image to show ──
@@ -666,6 +722,12 @@ const Diagnostics = () => {
                                                 }
                                             </Button>
                                         )}
+                                        {aiAnalysis && (
+                                            <Button onClick={() => setShowFeedbackModal(true)}
+                                                className="bg-gradient-to-r from-orange-500 to-amber-500 shadow-lg text-white">
+                                                <FaExclamationTriangle className="mr-2" /> Flag as Incorrect
+                                            </Button>
+                                        )}
                                     </div>
                                 </div>
 
@@ -892,54 +954,124 @@ const Diagnostics = () => {
                 </AnimatePresence >
             </div >
             {/* Feedback Modal */}
-            < AnimatePresence >
+            <AnimatePresence>
                 {showFeedbackModal && (
                     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                        {/* Backdrop */}
                         <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            onClick={() => setShowFeedbackModal(false)}
-                            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+                            onClick={() => { setShowFeedbackModal(false); setCorrectedDiagnosis(''); setFeedbackNotes(''); setFeedbackReason(''); }}
+                            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
                         />
+                        {/* Modal */}
                         <motion.div
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.95 }}
-                            className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl p-6"
+                            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                            className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden"
                         >
-                            <h3 className="text-xl font-bold text-gray-800 mb-4">Flag AI Analysis</h3>
-                            <p className="text-gray-600 text-sm mb-4">
-                                Why is this AI analysis incorrect? Your feedback helps us improve the model.
-                            </p>
-                            <textarea
-                                value={feedbackReason}
-                                onChange={(e) => setFeedbackReason(e.target.value)}
-                                placeholder="Enter reason for disapproval..."
-                                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-red-500 focus:ring-2 focus:ring-red-200 outline-none transition-all resize-none mb-4"
-                                rows="4"
-                            />
-                            <div className="flex gap-3">
-                                <Button
-                                    variant="secondary"
-                                    className="flex-1"
-                                    onClick={() => setShowFeedbackModal(false)}
-                                    disabled={submittingFeedback}
-                                >
-                                    Cancel
-                                </Button>
-                                <Button
-                                    className="flex-1 bg-red-500 hover:bg-red-600 text-white"
-                                    onClick={handleDisapprove}
-                                    isLoading={submittingFeedback}
-                                >
-                                    Submit Feedback
-                                </Button>
+                            {/* Header */}
+                            <div className="bg-gradient-to-r from-orange-500 to-amber-500 p-5">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-white/20 rounded-lg">
+                                        <FaExclamationTriangle className="text-white text-lg" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-lg font-bold text-white">Flag AI Prediction as Incorrect</h3>
+                                        <p className="text-orange-100 text-xs mt-0.5">Your correction helps retrain and improve the model</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="p-6 space-y-4">
+                                {/* AI Said */}
+                                <div className="bg-orange-50 border border-orange-100 rounded-xl p-3 text-sm">
+                                    <span className="text-orange-600 font-semibold">AI Predicted: </span>
+                                    <span className="text-gray-700 capitalize">
+                                        {isBrainScan(selectedScan)
+                                            ? `Tumor: ${aiAnalysis?.tumor?.prediction?.replace(/_/g, ' ') || '—'}  |  Alzheimer's: ${aiAnalysis?.alzheimer?.prediction?.replace(/_/g, ' ') || '—'}`
+                                            : aiAnalysis?.prediction?.class_name?.replace(/_/g, ' ') || '—'
+                                        }
+                                    </span>
+                                </div>
+
+                                {/* Corrected Diagnosis */}
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                                        Corrected Diagnosis <span className="text-red-500">*</span>
+                                    </label>
+                                    <select
+                                        value={correctedDiagnosis}
+                                        onChange={(e) => setCorrectedDiagnosis(e.target.value)}
+                                        className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all bg-white text-gray-800 text-sm"
+                                    >
+                                        <option value="">Select correct diagnosis...</option>
+                                        {getDiagnosisOptions().map(opt => (
+                                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {/* Reason */}
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                                        Reason <span className="text-red-500">*</span>
+                                    </label>
+                                    <select
+                                        value={feedbackReason}
+                                        onChange={(e) => setFeedbackReason(e.target.value)}
+                                        className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all bg-white text-gray-800 text-sm"
+                                    >
+                                        <option value="">Select reason...</option>
+                                        <option value="wrong_class">Wrong class predicted</option>
+                                        <option value="low_confidence">Low confidence / uncertain result</option>
+                                        <option value="image_quality">Poor image quality affected result</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+
+                                {/* Additional Notes */}
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                                        Additional Notes <span className="text-gray-400 font-normal">(optional)</span>
+                                    </label>
+                                    <textarea
+                                        value={feedbackNotes}
+                                        onChange={(e) => setFeedbackNotes(e.target.value)}
+                                        placeholder="Add any clinical observations or context..."
+                                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all resize-none text-sm"
+                                        rows={3}
+                                    />
+                                </div>
+
+                                {/* Actions */}
+                                <div className="flex gap-3 pt-1">
+                                    <Button
+                                        variant="secondary"
+                                        className="flex-1"
+                                        onClick={() => { setShowFeedbackModal(false); setCorrectedDiagnosis(''); setFeedbackNotes(''); setFeedbackReason(''); }}
+                                        disabled={submittingFeedback}
+                                    >
+                                        Cancel
+                                    </Button>
+                                    <Button
+                                        className="flex-1 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-md"
+                                        onClick={handleSubmitFeedback}
+                                        disabled={submittingFeedback}
+                                    >
+                                        {submittingFeedback
+                                            ? <><FaSpinner className="animate-spin mr-2" /> Submitting...</>
+                                            : <><FaCheckCircle className="mr-2" /> Submit Feedback</>
+                                        }
+                                    </Button>
+                                </div>
                             </div>
                         </motion.div>
                     </div>
                 )}
-            </AnimatePresence >
+            </AnimatePresence>
         </div >
     );
 };

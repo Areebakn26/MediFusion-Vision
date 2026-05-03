@@ -29,11 +29,11 @@ const AdminLayout = () => {
                     <Link to="/admin/users" className="block px-4 py-3 rounded hover:bg-gray-800 transition-colors">
                         User Management
                     </Link>
-                    <Link to="/admin/scans" className="block px-4 py-3 rounded hover:bg-gray-800 transition-colors">
+                    <Link to="/admin/scan-repository" className="block px-4 py-3 rounded hover:bg-gray-800 transition-colors">
                         Scan Repository
                     </Link>
-                    <Link to="/admin/reports" className="block px-4 py-3 rounded hover:bg-gray-800 transition-colors">
-                        Reports & Analytics
+                    <Link to="/admin/feedback" className="block px-4 py-3 rounded hover:bg-gray-800 transition-colors">
+                        AI Feedback Loop
                     </Link>
                 </nav>
                 <div className="p-4 border-t border-gray-800">

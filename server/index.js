@@ -1,4 +1,4 @@
-const express = require('express'); 
+﻿const express = require('express'); 
 const cors = require('cors');
 const dotenv = require('dotenv');
 const path = require('path');
@@ -7,6 +7,7 @@ const { Server } = require('socket.io');
 const { sequelize } = require('./models');
 const { ChatLog } = require('./models');
 const initCronJobs = require('./appointmentReminders');
+const { initRetrainingCron } = require('./jobs/retrainingTrigger');
 
 dotenv.config();
 
@@ -36,6 +37,7 @@ app.use('/api/payments', require('./routes/paymentRoutes'));
 app.use('/api/doctors', require('./routes/doctorRoutes'));
 app.use('/api/patient', require('./routes/patientSettingsRoutes'));
 app.use('/api/notifications', require('./routes/notificationRoutes'));
+app.use('/api/feedback', require('./routes/feedbackRoutes'));
 
 // Serve Uploads
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -112,6 +114,7 @@ const startServer = async () => {
 
         // Initialize background jobs
         initCronJobs();
+        initRetrainingCron();
 
         server.listen(PORT, () => {
             console.log(`Server running on port ${PORT}`);

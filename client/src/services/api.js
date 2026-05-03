@@ -1,4 +1,4 @@
-import axios from 'axios';
+﻿import axios from 'axios';
 
 const API = axios.create({
     baseURL: `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api`,
@@ -151,5 +151,13 @@ export const getConsultationPatientSummary = (appointmentId) =>
 export const getNotifications = () => API.get('/notifications');
 export const markNotificationRead = (id) => API.put(`/notifications/${id}/read`);
 export const markAllNotificationsRead = () => API.put('/notifications/read-all');
+
+// ==================== FEEDBACK LOOP APIs ====================
+export const submitFeedback = (data) => API.post('/feedback', data);
+export const getFeedback = (params) => API.get('/feedback', { params });
+export const getFeedbackStats = () => API.get('/feedback/stats');
+export const triggerRetrain = (data) => API.post('/feedback/trigger-retrain', data);
+export const getRetrainJobs = () => API.get('/feedback/retrain-jobs');
+export const getScanRepository = () => API.get('/feedback/scan-repository');
 
 export default API;

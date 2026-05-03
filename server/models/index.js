@@ -1,4 +1,4 @@
-const sequelize = require('../config/database');
+﻿const sequelize = require('../config/database');
 const { DataTypes } = require('sequelize');
 
 // Import Models
@@ -16,6 +16,9 @@ const ChatLog = require('./ChatLog');
 const Report = require('./Report');
 const ConsultationNote = require('./ConsultationNote');
 const Notification = require('./Notification');
+const Feedback = require('./Feedback');
+const ModelVersion = require('./ModelVersion');
+const RetrainingJob = require('./RetrainingJob');
 
 // Define Associations
 
@@ -93,6 +96,13 @@ Report.belongsTo(Doctor, { foreignKey: 'doctor_id' });
 Patient.hasMany(Report, { foreignKey: 'patient_id' });
 Report.belongsTo(Patient, { foreignKey: 'patient_id' });
 
+// Feedback (ai_feedback table)
+Scan.hasMany(Feedback, { foreignKey: 'scan_id', onDelete: 'CASCADE' });
+Feedback.belongsTo(Scan, { foreignKey: 'scan_id' });
+
+Doctor.hasMany(Feedback, { foreignKey: 'doctor_id' });
+Feedback.belongsTo(Doctor, { foreignKey: 'doctor_id' });
+
 module.exports = {
     sequelize,
     User,
@@ -108,5 +118,8 @@ module.exports = {
     ChatLog,
     Report,
     ConsultationNote,
-    Notification
+    Notification,
+    Feedback,
+    ModelVersion,
+    RetrainingJob,
 };
