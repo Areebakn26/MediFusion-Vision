@@ -1,8 +1,9 @@
-const { Scan, Report, Patient, User, Doctor, AIFeedback, Appointment, Notification } = require('../models');
+﻿const { Scan, Report, Patient, User, Doctor, AIFeedback, Appointment, Notification } = require('../models');
 const axios = require('axios');
 const FormData = require('form-data');
 const { generateReportPDF } = require('../utils/pdfGenerator');
 const { sendReportReadyEmail } = require('../utils/emailService');
+const { createNotification } = require('../utils/notificationHelper');
 const multer = require('multer');
 const path = require('path');
 const { Op } = require('sequelize');
@@ -316,6 +317,19 @@ const createReport = async (req, res) => {
             } catch (notifyError) {
                 console.error("PDF/Notification Error:", notifyError);
             }
+        }
+        // Notify the patient that their report is ready
+        const patientProfile = await Patient.findByPk(scan.patient_id, {
+            include: [{ model: User, attributes: ['id', 'name'] }]
+        });
+        if (patientProfile && patientProfile.User) {
+            await createNotification(
+                patientProfile.User.id,
+                'report_ready',
+                'Your Report is Ready',
+                'Your medical scan report has been reviewed and finalized by the doctor. Tap to view your results.',
+                { scanId: scan.id, reportId: report.id }
+            );
         }
 
         res.status(201).json(report);

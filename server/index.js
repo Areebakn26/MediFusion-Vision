@@ -95,6 +95,16 @@ io.on('connection', (socket) => {
         });
     });
 
+    // Patient joined consultation — broadcast to room so doctor gets real-time alert
+    socket.on('patient_joined', (data) => {
+        socket.to(data.room).emit('patient_joined_consultation', {
+            patientName: data.patientName,
+            appointmentId: data.appointmentId,
+            message: `${data.patientName || 'Patient'} has joined the consultation`
+        });
+        console.log(`[Socket] Patient ${data.patientName} joined room ${data.room}`);
+    });
+
     socket.on('disconnect', () => {
         console.log('User Disconnected', socket.id);
     });

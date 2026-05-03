@@ -17,6 +17,7 @@ router.post('/', protect, requireRole(['patient']), bookAppointment);
 router.get('/', protect, getAppointments);
 router.get('/check-availability', checkAvailability);
 router.get('/available-slots', getAvailableSlots);
+router.get('/:id', protect, getAppointmentById);
 
 router.get('/:id', protect, getAppointmentById);
 router.put('/:id/status', protect, requireRole(['doctor', 'admin']), updateAppointmentStatus);

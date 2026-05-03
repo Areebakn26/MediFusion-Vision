@@ -235,9 +235,7 @@ const forgotPassword = async (req, res) => {
         user.password_reset_expires = Date.now() + 60 * 60 * 1000; // 1 hour
         await user.save();
 
-        // Send Email (Mock)
-        console.log(`[MOCK EMAIL] Reset Link: http://localhost:5173/reset-password/${resetToken}`);
-        // await sendPasswordResetEmail(user.email, resetToken);
+        await sendPasswordResetEmail(user.email, resetToken);
 
         res.json({ message: 'Password reset link sent to email' });
     } catch (error) {
@@ -420,6 +418,9 @@ const updateProfile = async (req, res) => {
                     throw createError; // Re-throw to be caught by outer catch
                 }
             } else {
+                    if (updateData.cnic && patient.cnic === updateData.cnic) {
+                    delete updateData.cnic;
+                }
                 // Update existing profile
                 try {
                     Object.assign(patient, updateData);

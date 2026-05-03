@@ -1,6 +1,6 @@
 const { Notification } = require('../models');
 
-// @desc    Get all notifications for a user
+// @desc    Get notifications for the logged-in user
 // @route   GET /api/notifications
 // @access  Private
 const getNotifications = async (req, res) => {
@@ -8,34 +8,40 @@ const getNotifications = async (req, res) => {
         const notifications = await Notification.findAll({
             where: { user_id: req.user.id },
             order: [['createdAt', 'DESC']],
-            limit: 50
+            limit: 60,
         });
         res.json(notifications);
     } catch (error) {
-        console.error("Get Notifications Error:", error);
+        console.error('Get Notifications Error:', error);
         res.status(500).json({ message: 'Server error' });
     }
 };
 
-// @desc    Mark notification as read
+// @desc    Get unread notification count
+// @route   GET /api/notifications/unread-count
+// @access  Private
+const getUnreadCount = async (req, res) => {
+    try {
+        const count = await Notification.count({
+            where: { user_id: req.user.id, is_read: false },
+        });
+        res.json({ count });
+    } catch (error) {
+        res.status(500).json({ count: 0 });
+    }
+};
+
+// @desc    Mark a single notification as read
 // @route   PUT /api/notifications/:id/read
 // @access  Private
 const markAsRead = async (req, res) => {
     try {
-        const notification = await Notification.findOne({
-            where: { id: req.params.id, user_id: req.user.id }
-        });
-
-        if (!notification) {
-            return res.status(404).json({ message: 'Notification not found' });
-        }
-
-        notification.is_read = true;
-        await notification.save();
-
-        res.json(notification);
+        await Notification.update(
+            { is_read: true },
+            { where: { id: req.params.id, user_id: req.user.id } }
+        );
+        res.json({ message: 'Marked as read' });
     } catch (error) {
-        console.error("Mark Read Error:", error);
         res.status(500).json({ message: 'Server error' });
     }
 };
@@ -51,13 +57,8 @@ const markAllAsRead = async (req, res) => {
         );
         res.json({ message: 'All notifications marked as read' });
     } catch (error) {
-        console.error("Mark All Read Error:", error);
         res.status(500).json({ message: 'Server error' });
     }
 };
 
-module.exports = {
-    getNotifications,
-    markAsRead,
-    markAllAsRead
-};
+module.exports = { getNotifications, getUnreadCount, markAsRead, markAllAsRead };

@@ -102,6 +102,9 @@ Feedback.belongsTo(Scan, { foreignKey: 'scan_id' });
 
 Doctor.hasMany(Feedback, { foreignKey: 'doctor_id' });
 Feedback.belongsTo(Doctor, { foreignKey: 'doctor_id' });
+// Notifications
+User.hasMany(Notification, { foreignKey: 'user_id', onDelete: 'CASCADE' });
+Notification.belongsTo(User, { foreignKey: 'user_id' });
 
 module.exports = {
     sequelize,

@@ -7,7 +7,19 @@ const Notification = sequelize.define('Notification', {
         defaultValue: DataTypes.UUIDV4,
         primaryKey: true,
     },
-    // user_id handled by associations
+    // user_id handled by association
+    type: {
+        type: DataTypes.ENUM(
+            'appointment_booked',
+            'appointment_cancelled',
+            'appointment_rescheduled',
+            'appointment_confirmed',
+            'appointment_reminder',
+            'report_ready',
+            'info'
+        ),
+        defaultValue: 'info',
+    },
     title: {
         type: DataTypes.STRING,
         allowNull: false,
@@ -16,18 +28,14 @@ const Notification = sequelize.define('Notification', {
         type: DataTypes.TEXT,
         allowNull: false,
     },
-    type: {
-        type: DataTypes.STRING,
-        defaultValue: 'info', // 'report_ready', 'scan_uploaded', 'appointment_reminder', etc.
-    },
-    link: {
-        type: DataTypes.STRING, // Optional URL to navigate to when clicked
-        allowNull: true,
-    },
     is_read: {
         type: DataTypes.BOOLEAN,
         defaultValue: false,
-    }
+    },
+    data: {
+        type: DataTypes.JSONB,
+        defaultValue: {},
+    },
 }, {
     tableName: 'Notifications',
     timestamps: true,
