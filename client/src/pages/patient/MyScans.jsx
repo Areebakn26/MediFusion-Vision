@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { GlassCard, Badge, Button } from '../../components/ui';
 import api from '../../services/api';
 import { useTranslation } from 'react-i18next';
+import { toast } from 'react-hot-toast';
 
 const MyScans = () => {
     const { t } = useTranslation();
@@ -27,6 +28,20 @@ const MyScans = () => {
             console.error('Error fetching scans:', error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleDeleteScan = async (scanId) => {
+        if (!window.confirm(t('confirmDeleteScan', 'Are you sure you want to delete this scan? This action cannot be undone.'))) {
+            return;
+        }
+        try {
+            await api.delete(`/scans/${scanId}`);
+            setScans(scans.filter(s => s.id !== scanId && s._id !== scanId));
+            toast.success(t('deleteScanSuccess', 'Scan deleted successfully'));
+        } catch (error) {
+            console.error('Error deleting scan:', error);
+            toast.error(error.response?.data?.message || t('deleteScanFailed', 'Failed to delete scan'));
         }
     };
 
@@ -67,7 +82,7 @@ const MyScans = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-off-white to-pastel-blue/20 p-6">
+        <div className="min-h-screen bg-surface p-6">
             <div className="max-w-7xl mx-auto">
                 {/* Header */}
                 <motion.div
@@ -77,10 +92,10 @@ const MyScans = () => {
                 >
                     <div className="flex justify-between items-center mb-4">
                         <div>
-                            <h1 className="text-4xl font-bold bg-gradient-to-r from-primary-blue to-primary-teal bg-clip-text text-transparent">
+                            <h1 className="text-4xl font-bold text-accent">
                                 {t('myScans_title', 'My Scans')}
                             </h1>
-                            <p className="text-gray-600 mt-1">{t('myScans_subtitle', 'View and manage your medical scans')}</p>
+                            <p className="text-foreground-muted mt-1">{t('myScans_subtitle', 'View and manage your medical scans')}</p>
                         </div>
                         <Link to="/patient/upload-scan">
                             <Button>{t('uploadNewScan_btn', '+ Upload New Scan')}</Button>
@@ -91,13 +106,13 @@ const MyScans = () => {
                     <GlassCard className="p-4">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
-                                <label className="block text-sm font-medium mb-2 text-gray-700">
+                                <label className="block text-sm font-medium mb-2 text-foreground-muted">
                                     {t('scanType_label', 'Scan Type')}
                                 </label>
                                 <select
                                     value={filters.type}
                                     onChange={(e) => setFilters({ ...filters, type: e.target.value })}
-                                    className="w-full px-4 py-2 rounded-xl bg-white/50 border border-white/20 focus:border-primary-blue focus:ring-2 focus:ring-primary-blue/20 outline-none text-sm"
+                                    className="w-full px-4 py-2 rounded-xl bg-surface-secondary border border-white/[0.06] focus:border-accent focus:ring-2 focus:ring-accent/20 outline-none text-sm"
                                 >
                                     <option value="all">{t('allTypes_opt', 'All Types')}</option>
                                     <option value="mri_brain">{t('mriBrain_opt', 'MRI Brain')}</option>
@@ -109,13 +124,13 @@ const MyScans = () => {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium mb-2 text-gray-700">
+                                <label className="block text-sm font-medium mb-2 text-foreground-muted">
                                     {t('source_label', 'Source')}
                                 </label>
                                 <select
                                     value={filters.source}
                                     onChange={(e) => setFilters({ ...filters, source: e.target.value })}
-                                    className="w-full px-4 py-2 rounded-xl bg-white/50 border border-white/20 focus:border-primary-blue focus:ring-2 focus:ring-primary-blue/20 outline-none text-sm"
+                                    className="w-full px-4 py-2 rounded-xl bg-surface-secondary border border-white/[0.06] focus:border-accent focus:ring-2 focus:ring-accent/20 outline-none text-sm"
                                 >
                                     <option value="all">{t('allSources_opt', 'All Sources')}</option>
                                     <option value="external">{t('external_opt', 'External')}</option>
@@ -124,13 +139,13 @@ const MyScans = () => {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium mb-2 text-gray-700">
+                                <label className="block text-sm font-medium mb-2 text-foreground-muted">
                                     {t('status_label', 'Status')}
                                 </label>
                                 <select
                                     value={filters.status}
                                     onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-                                    className="w-full px-4 py-2 rounded-xl bg-white/50 border border-white/20 focus:border-primary-blue focus:ring-2 focus:ring-primary-blue/20 outline-none text-sm"
+                                    className="w-full px-4 py-2 rounded-xl bg-surface-secondary border border-white/[0.06] focus:border-accent focus:ring-2 focus:ring-accent/20 outline-none text-sm"
                                 >
                                     <option value="all">{t('allStatus_opt', 'All Status')}</option>
                                     <option value="validated">{t('validated_opt', 'Validated')}</option>
@@ -145,11 +160,11 @@ const MyScans = () => {
                 {/* Scans Grid */}
                 {loading ? (
                     <GlassCard className="p-12 text-center">
-                        <div className="animate-pulse text-gray-600">Loading scans...</div>
+                        <div className="animate-pulse text-foreground-muted">Loading scans...</div>
                     </GlassCard>
                 ) : filteredScans.length === 0 ? (
                     <GlassCard className="p-12 text-center">
-                        <p className="text-gray-500 mb-4">{t('noScansFound', 'No scans found')}</p>
+                        <p className="text-foreground-muted mb-4">{t('noScansFound', 'No scans found')}</p>
                         <Link to="/patient/upload-scan">
                             <Button>{t('uploadYourFirstScan_btn', 'Upload Your First Scan')}</Button>
                         </Link>
@@ -165,7 +180,7 @@ const MyScans = () => {
                             >
                                 <GlassCard className="overflow-hidden group">
                                     {/* Scan Preview */}
-                                    <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center overflow-hidden">
+                                    <div className="relative h-48 bg-surface-secondary/80 flex items-center justify-center overflow-hidden">
                                         {scan.file_url ? (
                                             <img
                                                 src={`${import.meta.env.VITE_API_URL.split('/api')[0]}${scan.file_url}`}
@@ -195,17 +210,17 @@ const MyScans = () => {
                                     <div className="p-5 space-y-3">
                                         <div className="flex items-start justify-between">
                                             <div>
-                                                <h3 className="font-bold text-gray-800 capitalize">
+                                                <h3 className="font-bold text-foreground capitalize">
                                                     {scan.scan_type?.replace('_', ' ')}
                                                 </h3>
-                                                <p className="text-sm text-gray-600">
+                                                <p className="text-sm text-foreground-muted">
                                                     {scan.body_part || 'N/A'}
                                                 </p>
                                             </div>
                                             <span className="text-3xl">{getScanIcon(scan.scan_type)}</span>
                                         </div>
 
-                                        <div className="space-y-1 text-sm text-gray-600">
+                                        <div className="space-y-1 text-sm text-foreground-muted">
                                             <div className="flex justify-between">
                                                 <span>Uploaded:</span>
                                                 <span className="font-medium">
@@ -229,7 +244,7 @@ const MyScans = () => {
                                         </div>
 
                                         {/* Actions */}
-                                        <div className="pt-3 border-t border-gray-100 flex gap-2">
+                                        <div className="pt-3 border-t border-white/5 flex gap-2">
                                             <Link to={`/patient/scans/results/${scan.id}`} className="flex-1">
                                                 <Button variant="primary" size="sm" className="w-full">
                                                     View Results
@@ -246,6 +261,13 @@ const MyScans = () => {
                                                     </Button>
                                                 </a>
                                             )}
+                                            <Button
+                                                variant="danger"
+                                                size="sm"
+                                                onClick={() => handleDeleteScan(scan.id || scan._id)}
+                                            >
+                                                🗑️
+                                            </Button>
                                         </div>
                                     </div>
                                 </GlassCard>
@@ -260,7 +282,7 @@ const MyScans = () => {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ delay: 0.3 }}
-                        className="mt-6 text-center text-sm text-gray-600"
+                        className="mt-6 text-center text-sm text-foreground-muted"
                     >
                         Showing {filteredScans.length} of {scans.length} scans
                     </motion.div>

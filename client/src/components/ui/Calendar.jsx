@@ -68,25 +68,24 @@ const Calendar = ({
     }
 
     return (
-        <div className="bg-white/70 backdrop-blur-md rounded-2xl shadow-glass border border-white/20 p-6">
-            {/* Header */}
+        <div className="bg-surface-secondary/80 backdrop-blur-[4px] rounded-xl shadow-card border border-white/[0.06] p-6">
             <div className="flex items-center justify-between mb-6">
                 <button
                     onClick={previousMonth}
-                    className="p-2 hover:bg-primary-blue/10 rounded-lg transition-colors"
+                    className="p-2 hover:bg-accent-subtle rounded-lg transition-colors text-foreground-muted hover:text-accent"
                 >
                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                     </svg>
                 </button>
 
-                <h3 className="text-lg font-bold">
+                <h3 className="text-lg font-medium text-foreground">
                     {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
                 </h3>
 
                 <button
                     onClick={nextMonth}
-                    className="p-2 hover:bg-primary-blue/10 rounded-lg transition-colors"
+                    className="p-2 hover:bg-accent-subtle rounded-lg transition-colors text-foreground-muted hover:text-accent"
                 >
                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -94,16 +93,14 @@ const Calendar = ({
                 </button>
             </div>
 
-            {/* Days of week */}
             <div className="grid grid-cols-7 gap-2 mb-2">
                 {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                    <div key={day} className="text-center text-sm font-medium text-gray-500 py-2">
+                    <div key={day} className="text-center text-sm font-medium text-foreground-subtle py-2">
                         {day}
                     </div>
                 ))}
             </div>
 
-            {/* Calendar days */}
             <div className="grid grid-cols-7 gap-2">
                 {days.map((day, index) => {
                     if (typeof day !== 'number') {
@@ -122,9 +119,9 @@ const Calendar = ({
                             disabled={disabled}
                             className={clsx(
                                 'aspect-square rounded-lg text-sm font-medium transition-all',
-                                selected && 'bg-gradient-to-r from-primary-blue to-primary-teal text-white shadow-md',
-                                !selected && !disabled && 'hover:bg-primary-blue/10 text-gray-700',
-                                disabled && 'text-gray-300 cursor-not-allowed'
+                                selected && 'bg-accent text-white shadow-sm',
+                                !selected && !disabled && 'hover:bg-accent-subtle text-foreground-muted',
+                                disabled && 'text-foreground-subtle/40 cursor-not-allowed'
                             )}
                         >
                             {day}

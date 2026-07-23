@@ -77,7 +77,7 @@ const UploadScan = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-off-white to-pastel-blue/20 p-6">
+        <div className="min-h-screen bg-surface p-6">
             <div className="max-w-4xl mx-auto">
                 {/* Header */}
                 <motion.div
@@ -85,10 +85,10 @@ const UploadScan = () => {
                     animate={{ opacity: 1, y: 0 }}
                     className="text-center mb-8"
                 >
-                    <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-primary-blue to-primary-teal bg-clip-text text-transparent">
+                    <h1 className="text-4xl font-bold mb-2 text-accent">
                         {t('uploadMedicalScan_title', 'Upload Medical Scan')}
                     </h1>
-                    <p className="text-gray-600">
+                    <p className="text-foreground-muted">
                         {t('uploadMedicalScan_subtitle', 'Upload your MRI, Retinal, X-Ray, CT, or Ultrasound scan for AI analysis')}
                     </p>
                 </motion.div>
@@ -98,15 +98,15 @@ const UploadScan = () => {
                         {/* Scan Type & Body Part */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-sm font-medium mb-2 text-gray-700">
-                                    {t('scanType_label', 'Scan Type')} <span className="text-red-500">*</span>
+                                <label className="block text-sm font-medium mb-2 text-foreground-muted">
+                                    {t('scanType_label', 'Scan Type')} <span className="text-error">*</span>
                                 </label>
                                 <select
                                     name="scanType"
                                     value={formData.scanType}
                                     onChange={handleChange}
                                     required
-                                    className="w-full px-4 py-3 rounded-xl bg-white/50 backdrop-blur-sm border border-white/20 focus:border-primary-blue focus:ring-2 focus:ring-primary-blue/20 outline-none transition-all"
+                                    className="w-full px-4 py-3 rounded-xl bg-surface-secondary border border-white/[0.06] focus:border-accent focus:ring-2 focus:ring-accent/20 outline-none transition-all"
                                 >
                                     <option value="">{t('selectScanType_opt', 'Select scan type')}</option>
                                     <option value="mri_brain">{t('mriBrain_opt', 'MRI Brain')}</option>
@@ -118,7 +118,7 @@ const UploadScan = () => {
                             </div>
 
                             <Input
-                                label={<>{t('bodyPart_label', 'Body Part')} <span className="text-red-500">*</span></>}
+                                label={<>{t('bodyPart_label', 'Body Part')} <span className="text-error">*</span></>}
                                 name="bodyPart"
                                 type="text"
                                 placeholder="e.g., Brain, Left Eye, Chest"
@@ -151,7 +151,7 @@ const UploadScan = () => {
 
                         {/* Notes */}
                         <div>
-                            <label className="block text-sm font-medium mb-2 text-gray-700">
+                            <label className="block text-sm font-medium mb-2 text-foreground-muted">
                                 {t('additionalNotes_label', 'Additional Notes')}
                             </label>
                             <textarea
@@ -160,14 +160,14 @@ const UploadScan = () => {
                                 onChange={handleChange}
                                 rows="3"
                                 placeholder="Any additional information about the scan..."
-                                className="w-full px-4 py-3 rounded-xl bg-white/50 backdrop-blur-sm border border-white/20 focus:border-primary-blue focus:ring-2 focus:ring-primary-blue/20 outline-none transition-all resize-none"
+                                className="w-full px-4 py-3 rounded-xl bg-surface-secondary border border-white/[0.06] focus:border-accent focus:ring-2 focus:ring-accent/20 outline-none transition-all resize-none"
                             />
                         </div>
 
                         {/* File Dropzone */}
                         <div>
-                            <label className="block text-sm font-medium mb-2 text-gray-700">
-                                {t('uploadScanFile_label', 'Upload Scan File')} <span className="text-red-500">*</span>
+                            <label className="block text-sm font-medium mb-2 text-foreground-muted">
+                                {t('uploadScanFile_label', 'Upload Scan File')} <span className="text-error">*</span>
                             </label>
                             <FileDropzone
                                 onFileSelect={handleFileSelect}
@@ -180,25 +180,25 @@ const UploadScan = () => {
                                 <motion.div
                                     initial={{ opacity: 0, y: 10 }}
                                     animate={{ opacity: 1, y: 0 }}
-                                    className="mt-4 p-4 bg-green-50 rounded-xl border border-green-200"
+                                    className="mt-4 p-4 bg-success/10 rounded-xl border border-success/20"
                                 >
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                                                <svg className="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <div className="w-10 h-10 bg-success/10 rounded-lg flex items-center justify-center">
+                                                <svg className="w-6 h-6 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                                 </svg>
                                             </div>
                                             <div>
-                                                <p className="font-medium text-gray-800">{file.name}</p>
-                                                <p className="text-sm text-gray-600">
+                                                <p className="font-medium text-foreground">{file.name}</p>
+                                                <p className="text-sm text-foreground-muted">
                                                     {(file.size / 1024 / 1024).toFixed(2)} MB
                                                 </p>
                                             </div>
                                         </div>
                                         <button
                                             onClick={() => setFile(null)}
-                                            className="text-red-500 hover:text-red-700 text-sm font-medium"
+                                            className="text-error hover:text-error text-sm font-medium"
                                         >
                                             Remove
                                         </button>
@@ -212,10 +212,10 @@ const UploadScan = () => {
                             <motion.div
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                className="p-4 bg-yellow-50 rounded-xl border border-yellow-200"
+                                className="p-4 bg-warning/10 rounded-xl border border-warning/20"
                             >
-                                <h4 className="font-semibold text-yellow-800 mb-2">⚠️ Validation Warnings:</h4>
-                                <ul className="list-disc list-inside text-sm text-yellow-700 space-y-1">
+                                <h4 className="font-semibold text-warning mb-2">⚠️ Validation Warnings:</h4>
+                                <ul className="list-disc list-inside text-sm text-warning space-y-1">
                                     {validationWarnings.map((warning, index) => (
                                         <li key={index}>{warning}</li>
                                     ))}
@@ -230,13 +230,13 @@ const UploadScan = () => {
                                 animate={{ opacity: 1 }}
                                 className="space-y-2"
                             >
-                                <div className="flex justify-between text-sm font-medium text-gray-700">
+                                <div className="flex justify-between text-sm font-medium text-foreground-muted">
                                     <span>Uploading & Analyzing...</span>
                                     <span>{progress}%</span>
                                 </div>
-                                <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                                <div className="w-full bg-surface-secondary rounded-full h-3 overflow-hidden">
                                     <motion.div
-                                        className="h-full bg-gradient-to-r from-primary-blue to-primary-teal rounded-full shadow-glow"
+                                        className="h-full bg-accent rounded-full"
                                         initial={{ width: 0 }}
                                         animate={{ width: `${progress}%` }}
                                         transition={{ duration: 0.3 }}
@@ -255,7 +255,7 @@ const UploadScan = () => {
                                 {uploading ? 'Processing...' : t('upload.submit', 'Submit Scan')}
                             </Button>
                             {(!file || !formData.scanType || !formData.bodyPart) && !uploading && (
-                                <p className="text-xs text-red-500 text-center animate-pulse">
+                                <p className="text-xs text-error text-center animate-pulse">
                                     {t('upload.selectFileFirst', 'Please select a file and required fields to continue')}
                                 </p>
                             )}
@@ -279,8 +279,8 @@ const UploadScan = () => {
                     className="mt-6"
                 >
                     <GlassCard className="p-6">
-                        <h3 className="font-semibold text-gray-800 mb-3">📋 {t('uploadGuidelines_title', 'Upload Guidelines:')}</h3>
-                        <ul className="text-sm text-gray-600 space-y-2">
+                        <h3 className="font-semibold text-foreground mb-3">📋 {t('uploadGuidelines_title', 'Upload Guidelines:')}</h3>
+                        <ul className="text-sm text-foreground-muted space-y-2">
                             <li>• {t('guideline1_msg', 'Supported formats: JPG, PNG, DICOM (.dcm)')}</li>
                             <li>• {t('guideline2_msg', 'Maximum file size: 50MB')}</li>
                             <li>• {t('guideline3_msg', 'Ensure the scan image is clear and properly oriented')}</li>

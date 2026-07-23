@@ -1,28 +1,45 @@
 ﻿# environment
 .env
+.env.*
+!.env.example
 
 # node
-
 node_modules/
-server/node_modules/
-client/node_modules/
 
 # python
 venv/
 __pycache__/
 *.pyc
-
 Brain_Model/venv/
 Retinal_Model/venv/
 
-# ML models
+# ML models (large binary files - not tracked)
 *.keras
-
 *.pth
+*.h5
 
 # editor
 .vscode/
-.DS_Store*.pth
-*.h5
-server/.env
-.env
+.DS_Store
+
+# logs
+*.log
+*.txt
+
+# server uploads & generated reports
+server/uploads/*
+
+# dev scripts (one-time utilities, not project source)
+server/scripts/
+
+# build outputs
+client/dist/
+mobile_app/build/
+mobile_app/.dart_tool/
+mobile_app/.flutter-plugins
+mobile_app/.flutter-plugins-dependencies
+mobile_app/.metadata
+mobile_app/devtools_options.yaml
+
+# system-generated
+Thumbs.db

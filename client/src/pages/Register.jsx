@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useNavigate, Link } from 'react-router-dom';
 import { registerUser } from '../services/api';
 import { GlassCard } from '../components/ui';
+import { AnimatedLogo } from '../components/brand';
 
 const Register = () => {
     const [role, setRole] = useState('patient');
@@ -27,13 +28,11 @@ const Register = () => {
         setError('');
         setSuccess('');
 
-        // Validate passwords match
         if (formData.password !== formData.confirmPassword) {
             setError('Passwords do not match');
             return;
         }
 
-        // Validate password strength
         if (formData.password.length < 8) {
             setError('Password must be at least 8 characters');
             return;
@@ -50,11 +49,8 @@ const Register = () => {
             });
 
             setSuccess('Registration successful! Please check your email to verify your account.');
-            
-            // Clear form
             setFormData({ name: '', email: '', password: '', confirmPassword: '' });
 
-            // Redirect to login after 3 seconds
             setTimeout(() => {
                 navigate('/login');
             }, 3000);
@@ -67,15 +63,15 @@ const Register = () => {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-teal-50 relative overflow-hidden py-12 px-4">
-            {/* Floating Background Shapes */}
+        <div className="min-h-screen flex items-center justify-center bg-surface relative overflow-hidden py-12 px-4">
+            <div className="fixed inset-0 bg-gradient-to-br from-accent-subtle/20 via-surface to-medical-subtle/20" />
             <motion.div
-                className="absolute top-20 left-20 w-64 h-64 bg-teal-200/30 rounded-full blur-3xl"
+                className="absolute top-20 left-20 w-64 h-64 bg-accent-subtle/30 rounded-full blur-3xl"
                 animate={{ y: [0, 30, 0], x: [0, 20, 0] }}
                 transition={{ duration: 8, repeat: Infinity }}
             />
             <motion.div
-                className="absolute bottom-20 right-20 w-96 h-96 bg-blue-200/30 rounded-full blur-3xl"
+                className="absolute bottom-20 right-20 w-96 h-96 bg-medical-subtle/30 rounded-full blur-3xl"
                 animate={{ y: [0, -30, 0], x: [0, -20, 0] }}
                 transition={{ duration: 10, repeat: Infinity }}
             />
@@ -87,92 +83,85 @@ const Register = () => {
                 className="w-full max-w-md z-10"
             >
                 <GlassCard className="p-8" hover={false}>
-                    {/* Header */}
                     <div className="text-center mb-6">
                         <Link to="/" className="inline-block mb-4">
-                            <span className="text-2xl font-bold text-gray-800">
-                                Medi<span className="text-teal-600">Fusion</span>
+                            <AnimatedLogo size={40} animate={false} />
+                            <span className="text-xl font-light text-foreground">
+                                Medi<span className="text-accent font-normal">Fusion</span>
                             </span>
                         </Link>
-                        <h2 className="text-3xl font-bold text-gray-800 mb-2">
+                        <h2 className="text-2xl font-light text-foreground mb-1">
                             Create Account
                         </h2>
-                        <p className="text-gray-600">Join MediFusion Vision today</p>
+                        <p className="text-foreground-muted text-sm">Join MediFusion Vision today</p>
                     </div>
 
-                    {/* Role Selector */}
                     <div className="flex justify-center gap-3 mb-6">
                         <button
                             type="button"
                             onClick={() => setRole('patient')}
-                            className={`flex items-center gap-2 px-5 py-3 rounded-xl font-semibold transition-all ${
+                            className={`flex items-center gap-2 px-5 py-3 rounded-xl font-medium text-sm transition-all ${
                                 role === 'patient'
-                                    ? 'bg-teal-600 text-white shadow-lg shadow-teal-200'
-                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                    ? 'bg-accent text-white shadow-sm'
+                                    : 'bg-surface-tertiary text-foreground-muted hover:bg-surface-elevated hover:text-foreground'
                             }`}
                         >
-                            <span className="text-lg">👤</span>
                             <span>Patient</span>
                         </button>
                         <button
                             type="button"
                             onClick={() => setRole('doctor')}
-                            className={`flex items-center gap-2 px-5 py-3 rounded-xl font-semibold transition-all ${
+                            className={`flex items-center gap-2 px-5 py-3 rounded-xl font-medium text-sm transition-all ${
                                 role === 'doctor'
-                                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-200'
-                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                    ? 'bg-accent text-white shadow-sm'
+                                    : 'bg-surface-tertiary text-foreground-muted hover:bg-surface-elevated hover:text-foreground'
                             }`}
                         >
-                            <span className="text-lg">👨‍⚕️</span>
                             <span>Doctor</span>
                         </button>
                     </div>
 
-                    {/* Info Box */}
-                    <div className={`p-3 rounded-xl text-sm mb-6 ${
-                        role === 'doctor' 
-                            ? 'bg-blue-50 border border-blue-200 text-blue-700'
-                            : 'bg-teal-50 border border-teal-200 text-teal-700'
+                    <div className={`p-3 rounded-xl text-sm mb-6 border ${
+                        role === 'doctor'
+                            ? 'bg-accent-subtle/50 border-accent/20 text-accent'
+                            : 'bg-medical-subtle/50 border-medical/20 text-medical'
                     }`}>
                         {role === 'doctor' ? (
                             <>
-                                <strong>👨‍⚕️ Doctor Registration</strong>
-                                <p className="mt-1 text-xs">After signup, you'll complete your professional profile. Access requires admin verification of your PMDC credentials.</p>
+                                <strong>Doctor Registration</strong>
+                                <p className="mt-1 text-xs text-foreground-muted">After signup, you'll complete your professional profile. Access requires admin verification of your PMDC credentials.</p>
                             </>
                         ) : (
                             <>
-                                <strong>👤 Patient Registration</strong>
-                                <p className="mt-1 text-xs">After signup, you'll complete your medical profile to start booking appointments with verified doctors.</p>
+                                <strong>Patient Registration</strong>
+                                <p className="mt-1 text-xs text-foreground-muted">After signup, you'll complete your medical profile to start booking appointments with verified doctors.</p>
                             </>
                         )}
                     </div>
 
-                    {/* Success Message */}
                     {success && (
                         <motion.div
                             initial={{ opacity: 0, y: -10 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="mb-6 p-4 rounded-xl bg-green-50 border border-green-200 text-green-700 text-sm"
+                            className="mb-6 p-4 rounded-xl bg-medical-subtle border border-medical/20 text-medical text-sm"
                         >
-                            ✅ {success}
+                            {success}
                         </motion.div>
                     )}
 
-                    {/* Error Message */}
                     {error && (
                         <motion.div
                             initial={{ opacity: 0, y: -10 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm"
+                            className="mb-6 p-4 rounded-xl bg-error/10 border border-error/20 text-error text-sm"
                         >
-                            ❌ {error}
+                            {error}
                         </motion.div>
                     )}
 
-                    {/* Form */}
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div>
-                            <label className="block text-sm font-medium mb-2 text-gray-700">
+                            <label className="block text-sm font-medium mb-1.5 text-foreground">
                                 Full Name
                             </label>
                             <input
@@ -182,12 +171,12 @@ const Register = () => {
                                 onChange={handleChange}
                                 placeholder="John Doe"
                                 required
-                                className="w-full px-4 py-3 rounded-xl bg-white border border-gray-200 text-gray-800 placeholder-gray-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-200 outline-none transition-all"
+                                className="w-full px-4 py-3 rounded-xl bg-surface-secondary border border-white/[0.06] text-foreground placeholder-foreground-subtle focus:border-accent focus:ring-2 focus:ring-accent/20 outline-none transition-all"
                             />
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium mb-2 text-gray-700">
+                            <label className="block text-sm font-medium mb-1.5 text-foreground">
                                 Email Address
                             </label>
                             <input
@@ -197,12 +186,12 @@ const Register = () => {
                                 onChange={handleChange}
                                 placeholder="your@email.com"
                                 required
-                                className="w-full px-4 py-3 rounded-xl bg-white border border-gray-200 text-gray-800 placeholder-gray-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-200 outline-none transition-all"
+                                className="w-full px-4 py-3 rounded-xl bg-surface-secondary border border-white/[0.06] text-foreground placeholder-foreground-subtle focus:border-accent focus:ring-2 focus:ring-accent/20 outline-none transition-all"
                             />
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium mb-2 text-gray-700">
+                            <label className="block text-sm font-medium mb-1.5 text-foreground">
                                 Password
                             </label>
                             <input
@@ -213,12 +202,12 @@ const Register = () => {
                                 placeholder="Min 8 characters"
                                 minLength={8}
                                 required
-                                className="w-full px-4 py-3 rounded-xl bg-white border border-gray-200 text-gray-800 placeholder-gray-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-200 outline-none transition-all"
+                                className="w-full px-4 py-3 rounded-xl bg-surface-secondary border border-white/[0.06] text-foreground placeholder-foreground-subtle focus:border-accent focus:ring-2 focus:ring-accent/20 outline-none transition-all"
                             />
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium mb-2 text-gray-700">
+                            <label className="block text-sm font-medium mb-1.5 text-foreground">
                                 Confirm Password
                             </label>
                             <input
@@ -228,19 +217,14 @@ const Register = () => {
                                 onChange={handleChange}
                                 placeholder="Re-enter password"
                                 required
-                                className="w-full px-4 py-3 rounded-xl bg-white border border-gray-200 text-gray-800 placeholder-gray-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-200 outline-none transition-all"
+                                className="w-full px-4 py-3 rounded-xl bg-surface-secondary border border-white/[0.06] text-foreground placeholder-foreground-subtle focus:border-accent focus:ring-2 focus:ring-accent/20 outline-none transition-all"
                             />
                         </div>
 
-                        {/* Submit Button */}
                         <button
                             type="submit"
                             disabled={loading || success}
-                            className={`w-full py-4 rounded-xl font-bold text-lg transition-all mt-6 ${
-                                role === 'doctor'
-                                    ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-200'
-                                    : 'bg-teal-600 hover:bg-teal-700 text-white shadow-lg shadow-teal-200'
-                            } ${(loading || success) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            className={`w-full py-3.5 rounded-button font-medium text-sm bg-accent hover:bg-accent-hover text-white transition-all active:scale-[0.97] shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)] focus:ring-2 focus:ring-accent/35 focus:outline-none mt-6 ${(loading || success) ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
                             {loading ? (
                                 <span className="flex items-center justify-center gap-2">
@@ -258,13 +242,12 @@ const Register = () => {
                         </button>
                     </form>
 
-                    {/* Footer */}
                     <div className="mt-6 text-center">
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm text-foreground-muted">
                             Already have an account?{' '}
                             <Link
                                 to="/login"
-                                className="text-teal-600 hover:underline font-medium"
+                                className="text-accent hover:underline font-medium"
                             >
                                 Sign in
                             </Link>

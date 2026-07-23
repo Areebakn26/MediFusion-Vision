@@ -1,5 +1,9 @@
 // Export all UI components
 export { default as GlassCard } from './GlassCard';
+export { default as SurfaceCard } from './SurfaceCard';
+export { default as LiquidGlass } from './GlassCard';
+export { default as DataCard } from './DataCard';
+export { default as StatusBadge } from './StatusBadge';
 export { default as Button } from './Button';
 export { default as Input } from './Input';
 export { default as Badge } from './Badge';
@@ -9,3 +13,8 @@ export { default as Calendar } from './Calendar';
 export { default as FileDropzone } from './FileDropzone';
 export { default as Chart } from './Chart';
 export { TabGroup, TabList, Tab, TabPanels, TabPanel } from './Tabs';
+export { default as PageHeader } from './PageHeader';
+export { default as Section } from './Section';
+export { default as ScrollReveal } from './ScrollReveal';
+export { StaggerContainer, StaggerItem } from './StaggerContainer';
+export { default as GradientText } from './GradientText';

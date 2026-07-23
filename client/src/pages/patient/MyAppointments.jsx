@@ -251,19 +251,19 @@ const MyAppointments = () => {
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-800">My Appointments</h1>
-                    <p className="text-gray-500 text-sm">Manage your scheduled visits</p>
+                    <h1 className="text-2xl font-bold text-foreground">My Appointments</h1>
+                    <p className="text-foreground-muted text-sm">Manage your scheduled visits</p>
                 </div>
-                <div className="flex bg-white p-1 rounded-xl shadow-sm border border-gray-100">
+                <div className="flex bg-surface-secondary p-1 rounded-xl shadow-card border border-white/5">
                     <button
                         onClick={() => setFilter('upcoming')}
-                        className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${filter === 'upcoming' ? 'bg-teal-50 text-teal-600' : 'text-gray-500 hover:text-gray-700'}`}
+                        className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${filter === 'upcoming' ? 'bg-accent-subtle text-accent' : 'text-foreground-muted/80 hover:text-foreground-muted'}`}
                     >
                         Upcoming
                     </button>
                     <button
                         onClick={() => setFilter('past')}
-                        className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${filter === 'past' ? 'bg-teal-50 text-teal-600' : 'text-gray-500 hover:text-gray-700'}`}
+                        className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${filter === 'past' ? 'bg-accent-subtle text-accent' : 'text-foreground-muted/80 hover:text-foreground-muted'}`}
                     >
                         Past
                     </button>
@@ -282,46 +282,46 @@ const MyAppointments = () => {
                                 key={appointmentId}
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                className={`bg-white p-6 rounded-2xl shadow-soft border-l-4 hover:shadow-lg transition-all ${joinable ? 'border-green-500 ring-2 ring-green-100' : 'border-teal-500'
+                                className={`bg-surface-secondary p-6 rounded-xl shadow-card border-l-4 hover:shadow-card transition-all ${joinable ? 'border-green-500 ring-2 ring-success/10' : 'border-accent'
                                     }`}
                             >
                                 {/* Joinable Alert */}
                                 {joinable && (
-                                    <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-xl flex items-center gap-3">
+                                    <div className="mb-4 p-3 bg-success/10 border border-success/20 rounded-xl flex items-center gap-3">
                                         <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center animate-pulse">
                                             <FaBell className="text-white" />
                                         </div>
                                         <div>
-                                            <p className="font-bold text-green-700">Ready to Join!</p>
-                                            <p className="text-sm text-green-600">Your doctor is waiting for you</p>
+                                            <p className="font-bold text-success">Ready to Join!</p>
+                                            <p className="text-sm text-success">Your doctor is waiting for you</p>
                                         </div>
                                     </div>
                                 )}
 
                                 <div className="flex justify-between items-start mb-4">
                                     <div className="flex items-center space-x-4">
-                                        <div className="w-12 h-12 bg-teal-100 rounded-full flex items-center justify-center text-teal-600 font-bold text-xl">
+                                        <div className="w-12 h-12 bg-accent-subtle rounded-full flex items-center justify-center text-accent font-bold text-xl">
                                             <FaUserMd />
                                         </div>
                                         <div>
-                                            <h3 className="font-bold text-gray-800 text-lg">
+                                            <h3 className="font-bold text-foreground text-lg">
                                                 {apt.doctor ? `Dr. ${apt.doctor.name}` : 'Dr. Unknown'}
                                             </h3>
-                                            <p className="text-teal-600 text-sm font-medium">
+                                            <p className="text-accent text-sm font-medium">
                                                 {apt.type === 'virtual' ? '📹 Virtual Consultation' : '🏥 In-Person Visit'}
                                             </p>
                                         </div>
                                     </div>
                                     <div className="text-right">
-                                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${apt.status === 'confirmed' ? 'bg-green-100 text-green-700' :
-                                            apt.status === 'cancelled' ? 'bg-red-100 text-red-700' :
-                                                apt.status === 'completed' ? 'bg-blue-100 text-blue-700' :
-                                                    'bg-yellow-100 text-yellow-700'
+                                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${apt.status === 'confirmed' ? 'bg-success/10 text-success' :
+                                            apt.status === 'cancelled' ? 'bg-error/10 text-error' :
+                                                apt.status === 'completed' ? 'bg-accent-subtle text-accent' :
+                                                    'bg-warning/10 text-warning'
                                             }`}>
                                             {apt.status?.charAt(0).toUpperCase() + apt.status?.slice(1) || 'Pending'}
                                         </span>
                                         {timeUntil && apt.status !== 'cancelled' && apt.status !== 'completed' && (
-                                            <p className={`text-xs mt-1 font-medium ${timeUntil === 'Starting now!' ? 'text-green-600' : 'text-gray-500'
+                                            <p className={`text-xs mt-1 font-medium ${timeUntil === 'Starting now!' ? 'text-success' : 'text-foreground-muted'
                                                 }`}>
                                                 {timeUntil}
                                             </p>
@@ -330,8 +330,8 @@ const MyAppointments = () => {
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4 mb-6">
-                                    <div className="flex items-center text-gray-600">
-                                        <FaCalendarAlt className="mr-2 text-teal-500" />
+                                    <div className="flex items-center text-foreground-muted">
+                                        <FaCalendarAlt className="mr-2 text-accent" />
                                         <span className="text-sm">
                                             {new Date(apt.date).toLocaleDateString('en-US', {
                                                 weekday: 'short',
@@ -340,25 +340,25 @@ const MyAppointments = () => {
                                             })}
                                         </span>
                                     </div>
-                                    <div className="flex items-center text-gray-600">
-                                        <FaClock className="mr-2 text-teal-500" />
+                                    <div className="flex items-center text-foreground-muted">
+                                        <FaClock className="mr-2 text-accent" />
                                         <span className="text-sm">{apt.timeSlot || apt.time_slot || apt.time}</span>
                                     </div>
                                 </div>
 
                                 {apt.reason && (
-                                    <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-                                        <p className="text-xs text-gray-500">Reason for visit:</p>
-                                        <p className="text-sm text-gray-700">{apt.reason}</p>
+                                    <div className="mb-4 p-3 bg-surface-secondary/60 rounded-lg">
+                                        <p className="text-xs text-foreground-muted">Reason for visit:</p>
+                                        <p className="text-sm text-foreground-muted">{apt.reason}</p>
                                     </div>
                                 )}
 
-                                <div className="flex flex-wrap gap-3 pt-4 border-t border-gray-100">
+                                <div className="flex flex-wrap gap-3 pt-4 border-t border-white/5">
                                     {/* Join Button - Only for virtual appointments at the right time */}
                                     {joinable && apt.type === 'virtual' && (
                                         <button
                                             onClick={() => handleJoinCall(apt)}
-                                            className="flex-1 bg-green-600 text-white py-3 rounded-xl font-bold hover:bg-green-700 transition-colors flex items-center justify-center gap-2 animate-pulse"
+                                            className="flex-1 bg-medical text-white py-3 rounded-xl font-bold hover:bg-green-700 transition-colors flex items-center justify-center gap-2 animate-pulse"
                                         >
                                             <FaVideo /> Join Call Now
                                         </button>
@@ -368,19 +368,19 @@ const MyAppointments = () => {
                                     {apt.status !== 'cancelled' && apt.status !== 'completed' && isUpcoming(apt) && !joinable && (
                                         <>
                                             {apt.type === 'virtual' && (
-                                                <div className="flex-1 bg-gray-100 text-gray-500 py-3 rounded-xl font-medium text-center text-sm">
+                                                <div className="flex-1 bg-surface-secondary/80 text-foreground-muted py-3 rounded-xl font-medium text-center text-sm">
                                                     Join available {timeUntil === 'Started' ? 'now' : 'at appointment time'}
                                                 </div>
                                             )}
                                             <button
                                                 onClick={(e) => confirmAction(e, 'cancel', apt)}
-                                                className="px-4 bg-red-50 text-red-600 py-3 rounded-xl font-bold hover:bg-red-100 transition-colors flex items-center justify-center gap-2"
+                                                className="px-4 bg-error/10 text-error py-3 rounded-xl font-bold hover:bg-error/20 transition-colors flex items-center justify-center gap-2"
                                             >
                                                 <FaTimesCircle /> Cancel
                                             </button>
                                             <button
                                                 onClick={(e) => confirmAction(e, 'reschedule', apt)}
-                                                className="px-4 bg-yellow-50 text-yellow-600 py-3 rounded-xl font-bold hover:bg-yellow-100 transition-colors flex items-center justify-center gap-2"
+                                                className="px-4 bg-warning/10 text-warning py-3 rounded-xl font-bold hover:bg-warning/20 transition-colors flex items-center justify-center gap-2"
                                             >
                                                 <FaRedo /> Reschedule
                                             </button>
@@ -391,7 +391,7 @@ const MyAppointments = () => {
                                     {apt.status === 'cancelled' && (
                                         <button
                                             onClick={() => handleReschedule(apt)}
-                                            className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+                                            className="flex-1 bg-accent text-white py-3 rounded-xl font-bold hover:bg-accent-hover transition-colors flex items-center justify-center gap-2"
                                         >
                                             <FaRedo /> Book Again
                                         </button>
@@ -399,7 +399,7 @@ const MyAppointments = () => {
 
                                     {/* Completed appointment */}
                                     {apt.status === 'completed' && (
-                                        <div className="flex-1 bg-blue-50 text-blue-600 py-3 rounded-xl font-medium text-center">
+                                        <div className="flex-1 bg-accent-subtle text-accent py-3 rounded-xl font-medium text-center">
                                             ✓ Consultation Completed
                                         </div>
                                     )}
@@ -408,12 +408,12 @@ const MyAppointments = () => {
                         );
                     })
                 ) : (
-                    <div className="col-span-full text-center py-12 bg-white rounded-2xl shadow-soft">
-                        <div className="w-16 h-16 bg-gray-100 text-gray-400 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <div className="col-span-full text-center py-12 bg-surface-secondary rounded-xl shadow-card">
+                        <div className="w-16 h-16 bg-surface-secondary/80 text-foreground-subtle rounded-full flex items-center justify-center mx-auto mb-4">
                             <FaCalendarAlt className="text-2xl" />
                         </div>
-                        <h3 className="text-lg font-bold text-gray-800">No {filter === 'upcoming' ? 'Upcoming' : 'Past'} Appointments</h3>
-                        <p className="text-gray-500 mb-4">
+                        <h3 className="text-lg font-bold text-foreground">No {filter === 'upcoming' ? 'Upcoming' : 'Past'} Appointments</h3>
+                        <p className="text-foreground-muted mb-4">
                             {filter === 'upcoming'
                                 ? "You don't have any scheduled appointments."
                                 : "Your past appointments will appear here."}
@@ -421,7 +421,7 @@ const MyAppointments = () => {
                         {filter === 'upcoming' && (
                             <button
                                 onClick={() => navigate('/patient/find-doctors')}
-                                className="px-6 py-3 bg-teal-600 text-white rounded-xl font-bold hover:bg-teal-700 transition-colors"
+                                className="px-6 py-3 bg-accent text-white rounded-xl font-bold hover:bg-accent-hover transition-colors"
                             >
                                 Book an Appointment
                             </button>
@@ -444,16 +444,16 @@ const MyAppointments = () => {
             >
                 <div className="space-y-4">
                     {selectedAppointment && (
-                        <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl mb-4">
-                            <p className="text-sm text-gray-600 mb-1">Current Appointment:</p>
-                            <p className="font-semibold text-gray-800">
+                        <div className="p-4 bg-accent-subtle border border-accent/20 rounded-xl mb-4">
+                            <p className="text-sm text-foreground-muted mb-1">Current Appointment:</p>
+                            <p className="font-semibold text-foreground">
                                 {new Date(selectedAppointment.date).toLocaleDateString()} at {selectedAppointment.time_slot || selectedAppointment.timeSlot}
                             </p>
                         </div>
                     )}
 
                     <div>
-                        <label className="block text-sm font-medium mb-2 text-gray-700">New Date</label>
+                        <label className="block text-sm font-medium mb-2 text-foreground-muted">New Date</label>
                         <input
                             type="date"
                             value={newDate}
@@ -463,11 +463,11 @@ const MyAppointments = () => {
                                 setSlotError('');
                             }}
                             min={new Date().toISOString().split('T')[0]}
-                            className="w-full px-4 py-3 rounded-xl bg-white border border-gray-200 focus:border-teal-500 focus:ring-2 focus:ring-teal-200 outline-none transition-all"
+                            className="w-full px-4 py-3 rounded-xl bg-surface-secondary border border-white/[0.06] focus:border-accent focus:ring-2 focus:ring-accent/20 outline-none transition-all"
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium mb-2 text-gray-700">New Time Slot</label>
+                        <label className="block text-sm font-medium mb-2 text-foreground-muted">New Time Slot</label>
                         <select
                             value={newTimeSlot}
                             onChange={(e) => {
@@ -476,8 +476,8 @@ const MyAppointments = () => {
                             }}
                             disabled={!newDate || availableSlots.length === 0}
                             className={`w-full px-4 py-3 rounded-xl border outline-none transition-all ${!newDate || availableSlots.length === 0
-                                ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed'
-                                : 'bg-white border-gray-200 focus:border-teal-500 focus:ring-2 focus:ring-teal-200'
+                                ? 'bg-surface-tertiary border border-white/[0.06] text-foreground-subtle cursor-not-allowed'
+                                : 'bg-surface-secondary border border-white/[0.06] focus:border-accent focus:ring-2 focus:ring-accent/20'
                                 }`}
                         >
                             <option value="">
@@ -492,7 +492,7 @@ const MyAppointments = () => {
                             ))}
                         </select>
                         {slotError && (
-                            <p className="text-sm text-red-600 mt-2">❌ {slotError}</p>
+                            <p className="text-sm text-error mt-2">❌ {slotError}</p>
                         )}
                     </div>
                     <div className="flex gap-3 pt-4">
@@ -500,8 +500,8 @@ const MyAppointments = () => {
                             onClick={submitReschedule}
                             disabled={checkingSlot || !newDate || !newTimeSlot}
                             className={`flex-1 px-6 py-3 rounded-xl font-bold transition-all ${checkingSlot || !newDate || !newTimeSlot
-                                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                : 'bg-teal-600 text-white hover:bg-teal-700 shadow-lg shadow-teal-200'
+                                ? 'bg-surface-tertiary text-foreground-subtle cursor-not-allowed'
+                                : 'bg-accent text-white hover:bg-accent-hover shadow-card'
                                 }`}
                         >
                             {checkingSlot ? 'Checking...' : 'Confirm Reschedule'}
@@ -514,7 +514,7 @@ const MyAppointments = () => {
                                 setNewTimeSlot('');
                                 setSlotError('');
                             }}
-                            className="flex-1 px-6 py-3 bg-gray-200 text-gray-700 rounded-xl font-bold hover:bg-gray-300 transition-colors"
+                            className="flex-1 px-6 py-3 bg-surface-secondary text-foreground-muted rounded-xl font-bold hover:bg-surface-tertiary transition-colors"
                         >
                             Cancel
                         </button>
@@ -530,38 +530,38 @@ const MyAppointments = () => {
 
                     return (
                         <div className="p-2">
-                            <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                            <h3 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
                                 <span>❌</span> Cancel Appointment?
                             </h3>
-                            <p className="text-gray-500 mb-6">Are you sure you want to cancel this appointment?</p>
+                            <p className="text-foreground-muted mb-6">Are you sure you want to cancel this appointment?</p>
 
-                            <div className={`rounded-xl p-4 mb-6 border-2 ${refundInfo.color === 'green' ? 'bg-green-50 border-green-300' :
-                                refundInfo.color === 'yellow' ? 'bg-yellow-50 border-yellow-300' :
-                                    'bg-red-50 border-red-300'
+                            <div className={`rounded-xl p-4 mb-6 border-2 ${refundInfo.color === 'green' ? 'bg-success/10 border-success/20' :
+                                refundInfo.color === 'yellow' ? 'bg-warning/10 border-warning/20' :
+                                    'bg-error/10 border-error/20'
                                 }`}>
-                                <p className="font-bold text-gray-800 mb-1">Refund Policy:</p>
-                                <p className={`text-lg font-extrabold ${refundInfo.color === 'green' ? 'text-green-700' :
-                                    refundInfo.color === 'yellow' ? 'text-yellow-700' :
-                                        'text-red-700'
+                                <p className="font-bold text-foreground mb-1">Refund Policy:</p>
+                                <p className={`text-lg font-extrabold ${refundInfo.color === 'green' ? 'text-success' :
+                                    refundInfo.color === 'yellow' ? 'text-warning' :
+                                        'text-error'
                                     }`}>
                                     {refundInfo.label}
                                 </p>
                                 {refundInfo.percentage > 0
-                                    ? <p className="text-sm text-gray-600 mt-1">Refund will be returned to your original payment method within 5–7 business days.</p>
-                                    : <p className="text-sm text-gray-600 mt-1">No refund will be issued due to the short notice period.</p>
+                                ? <p className="text-sm text-foreground-muted mt-1">Refund will be returned to your original payment method within 5–7 business days.</p>
+                                : <p className="text-sm text-foreground-muted mt-1">No refund will be issued due to the short notice period.</p>
                                 }
                             </div>
 
                             <div className="flex gap-3">
                                 <button
                                     onClick={() => setActionModal({ isOpen: false, type: '', appointment: null })}
-                                    className="flex-1 py-3 rounded-xl font-bold bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                    className="flex-1 py-3 rounded-xl font-bold bg-surface-secondary/80 text-foreground-muted hover:bg-surface-tertiary"
                                 >
                                     No, Keep It
                                 </button>
                                 <button
                                     onClick={() => handleCancel(apt._id || apt.id)}
-                                    className="flex-1 py-3 rounded-xl font-bold text-white bg-red-600 hover:bg-red-700 shadow-lg shadow-red-200"
+                                    className="flex-1 py-3 rounded-xl font-bold text-white bg-error hover:bg-red-700 shadow-card"
                                 >
                                     Yes, Cancel
                                 </button>
@@ -575,23 +575,23 @@ const MyAppointments = () => {
             <Modal isOpen={actionModal.isOpen && actionModal.type === 'reschedule' && !!actionModal.appointment} onClose={() => setActionModal({ isOpen: false, type: '', appointment: null })}>
                 {actionModal.appointment && (
                     <div className="p-2">
-                        <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                        <h3 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
                             <span>🔄</span> Free Reschedule
                         </h3>
-                        <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-6 text-sm text-green-800">
+                        <div className="bg-success/10 border border-success/20 rounded-xl p-4 mb-6 text-sm text-success">
                             <p className="font-bold mb-1">✅ You qualify for a free reschedule!</p>
                             <p>Your appointment is more than 24 hours away. You can change your time slot at no extra cost.</p>
                         </div>
                         <div className="flex gap-3">
-                            <button
-                                onClick={() => setActionModal({ isOpen: false, type: '', appointment: null })}
-                                className="flex-1 py-3 rounded-xl font-bold bg-gray-100 text-gray-700 hover:bg-gray-200"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={() => handleReschedule(actionModal.appointment)}
-                                className="flex-1 py-3 rounded-xl font-bold text-white bg-yellow-600 hover:bg-yellow-700"
+                                <button
+                                    onClick={() => setActionModal({ isOpen: false, type: '', appointment: null })}
+                                    className="flex-1 py-3 rounded-xl font-bold bg-surface-secondary/80 text-foreground-muted hover:bg-surface-tertiary"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={() => handleReschedule(actionModal.appointment)}
+                                    className="flex-1 py-3 rounded-xl font-bold text-white bg-yellow-600 hover:bg-yellow-700"
                             >
                                 Choose New Time
                             </button>
@@ -608,10 +608,10 @@ const MyAppointments = () => {
 
                     return (
                         <div className="p-2">
-                            <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                            <h3 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
                                 <span>⚠️</span> Late Reschedule Warning
                             </h3>
-                            <div className="bg-orange-50 border border-orange-300 rounded-xl p-4 mb-4 text-sm text-orange-900">
+                            <div className="bg-warning/10 border border-warning/20 rounded-xl p-4 mb-4 text-sm text-warning">
                                 <p className="font-bold mb-2">Your appointment is within 24 hours.</p>
                                 <p>Rescheduling this close to the appointment is treated as a <strong>cancellation + new booking</strong>.</p>
                                 <ul className="list-disc pl-5 mt-2 space-y-1">
@@ -623,7 +623,7 @@ const MyAppointments = () => {
                             <div className="flex gap-3">
                                 <button
                                     onClick={() => setActionModal({ isOpen: false, type: '', appointment: null })}
-                                    className="flex-1 py-3 rounded-xl font-bold bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                    className="flex-1 py-3 rounded-xl font-bold bg-surface-secondary/80 text-foreground-muted hover:bg-surface-tertiary"
                                 >
                                     Go Back
                                 </button>
@@ -632,7 +632,7 @@ const MyAppointments = () => {
                                         handleCancel(apt._id || apt.id);
                                         setTimeout(() => navigate('/patient/book-appointment'), 2000);
                                     }}
-                                    className="flex-1 py-3 rounded-xl font-bold text-white bg-red-600 hover:bg-red-700 shadow-lg shadow-red-200"
+                                    className="flex-1 py-3 rounded-xl font-bold text-white bg-error hover:bg-red-700 shadow-card"
                                 >
                                     Cancel & Rebook
                                 </button>

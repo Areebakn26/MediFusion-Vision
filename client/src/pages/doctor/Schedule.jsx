@@ -88,9 +88,9 @@ const Schedule = () => {
     };
 
     // Check if appointment is joinable/startable
-    // Rules: status must be 'confirmed' or 'in_progress', within 15 min before → 60 min after appointment time
+    // Rules: status must be 'confirmed', within 15 min before → 60 min after appointment time
     const isJoinable = (app) => {
-        if (!['confirmed', 'in_progress'].includes(app.status)) return false; // completed/cancelled never joinable
+        if (app.status !== 'confirmed') return false; // only confirmed appointments are startable
 
         const appointmentTime = parseTimeSlot(app.date, app.timeSlot || app.time_slot);
         if (!appointmentTime) return false;
@@ -199,17 +199,17 @@ const Schedule = () => {
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-teal-500 bg-clip-text text-transparent">
+                <h1 className="text-3xl font-bold text-accent">
                     Schedule Management
                 </h1>
-                <div className="flex bg-white/50 backdrop-blur-sm p-1 rounded-xl border border-white/20">
+                <div className="flex bg-surface-secondary/50 backdrop-blur-sm p-1 rounded-xl border border-white/20">
                     {['appointments', 'availability'].map((tab) => (
                         <button
                             key={tab}
                             onClick={() => setActiveTab(tab)}
                             className={`px-6 py-2 rounded-lg text-sm font-medium capitalize transition-all ${activeTab === tab
-                                ? 'bg-white text-blue-600 shadow-sm'
-                                : 'text-gray-500 hover:text-gray-700'
+                                ? 'bg-surface-secondary text-accent shadow-card'
+                                : 'text-foreground-muted hover:text-foreground-muted'
                                 }`}
                         >
                             {tab}
@@ -238,8 +238,8 @@ const Schedule = () => {
                                     key={filter.key}
                                     onClick={() => setFilterStatus(filter.key)}
                                     className={`px-4 py-2 rounded-full text-sm font-medium capitalize transition-all border flex items-center gap-2 ${filterStatus === filter.key
-                                        ? 'bg-blue-600 text-white border-blue-600'
-                                        : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                                        ? 'bg-accent text-white border-accent'
+                                        : 'bg-surface-secondary text-foreground-muted border-white/[0.06] hover:bg-surface-tertiary'
                                         }`}
                                 >
                                     {filter.icon} {filter.label}
@@ -250,15 +250,15 @@ const Schedule = () => {
                         {/* List */}
                         {loading ? (
                             <div className="text-center py-12">
-                                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                                <p className="text-gray-500">Loading schedule...</p>
+                                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-accent mx-auto mb-4"></div>
+                                <p className="text-foreground-muted">Loading schedule...</p>
                             </div>
                         ) : (
                             <div className="space-y-4">
                                 {sortedAppointments.length === 0 ? (
                                     <GlassCard className="p-12 text-center">
                                         <div className="text-4xl mb-4">📅</div>
-                                        <p className="text-gray-500">No {filterStatus} appointments found.</p>
+                                        <p className="text-foreground-muted">No {filterStatus} appointments found.</p>
                                     </GlassCard>
                                 ) : (
                                     sortedAppointments.map((app, index) => {
@@ -273,27 +273,27 @@ const Schedule = () => {
                                                 animate={{ opacity: 1, x: 0 }}
                                                 transition={{ delay: index * 0.05 }}
                                             >
-                                                <GlassCard className={`p-6 transition-all ${joinable ? 'border-2 border-green-400 ring-2 ring-green-100' : 'hover:border-blue-200'
+                                                <GlassCard className={`p-6 transition-all ${joinable ? 'border-2 border-success/40 ring-2 ring-success/10' : 'hover:border-accent/20'
                                                     }`}>
                                                     {/* Joinable Alert */}
                                                     {joinable && (
-                                                        <div className={`mb-4 p-3 border rounded-xl flex items-center justify-between ${app.type === 'physical' ? 'bg-blue-50 border-blue-200' : 'bg-green-50 border-green-200'}`}>
+                                                        <div className={`mb-4 p-3 border rounded-xl flex items-center justify-between ${app.type === 'physical' ? 'bg-accent-subtle border-accent/20' : 'bg-success/10 border-success/20'}`}>
                                                             <div className="flex items-center gap-3">
-                                                                <div className={`w-10 h-10 rounded-full flex items-center justify-center animate-pulse ${app.type === 'physical' ? 'bg-blue-500' : 'bg-green-500'}`}>
+                                                                <div className={`w-10 h-10 rounded-full flex items-center justify-center animate-pulse ${app.type === 'physical' ? 'bg-accent' : 'bg-success'}`}>
                                                                     <FaBell className="text-white" />
                                                                 </div>
                                                                 <div>
-                                                                    <p className={`font-bold ${app.type === 'physical' ? 'text-blue-700' : 'text-green-700'}`}>
+                                                                    <p className={`font-bold ${app.type === 'physical' ? 'text-accent' : 'text-success'}`}>
                                                                         {app.type === 'physical' ? 'Physical Visit Starting Soon!' : 'Patient is Waiting!'}
                                                                     </p>
-                                                                    <p className={`text-sm ${app.type === 'physical' ? 'text-blue-600' : 'text-green-600'}`}>
+                                                                    <p className={`text-sm ${app.type === 'physical' ? 'text-accent' : 'text-success'}`}>
                                                                         {app.type === 'physical' ? 'In-person consultation ready to start' : 'Virtual consultation ready to start'}
                                                                     </p>
                                                                 </div>
                                                             </div>
                                                             <button
                                                                 onClick={() => handleJoinCall(app)}
-                                                                className={`px-6 py-3 text-white rounded-xl font-bold transition-colors flex items-center gap-2 ${app.type === 'physical' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-green-600 hover:bg-green-700'}`}
+                                                                className={`px-6 py-3 text-white rounded-xl font-bold transition-colors flex items-center gap-2 ${app.type === 'physical' ? 'bg-accent hover:bg-accent-hover' : 'bg-success hover:bg-emerald-700'}`}
                                                             >
                                                                 {app.type === 'physical' ? (
                                                                     <>Start Session</>
@@ -306,17 +306,17 @@ const Schedule = () => {
 
                                                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                                                         <div className="flex items-start space-x-4">
-                                                            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl font-bold shadow-sm ${app.type === 'physical' ? 'bg-blue-100 text-blue-600' : 'bg-purple-100 text-purple-600'
+                                                            <div className={`w-14 h-14 rounded-xl flex items-center justify-center text-2xl font-bold shadow-card ${app.type === 'physical' ? 'bg-accent-subtle text-accent' : 'bg-accent-subtle text-accent'
                                                                 }`}>
                                                                 {app.patient?.name?.charAt(0) || 'P'}
                                                             </div>
                                                             <div>
-                                                                <h3 className="font-bold text-lg text-gray-900">
+                                                                <h3 className="font-bold text-lg text-foreground">
                                                                     {app.patient?.name || 'Patient'}
                                                                 </h3>
-                                                                <div className="text-sm text-gray-500 flex items-center flex-wrap gap-2 mt-1">
-                                                                    {app.patient?.gender && app.patient?.date_of_birth && (
-                                                                        <span className="bg-gray-100 px-2 py-0.5 rounded text-gray-600">
+<div className="text-sm text-foreground-muted flex items-center flex-wrap gap-2 mt-1">
+                                    {app.patient?.gender && app.patient?.date_of_birth && (
+                                        <span className="bg-surface-tertiary px-2 py-0.5 rounded text-foreground-muted">
                                                                             {app.patient.gender},{' '}
                                                                             {Math.floor((Date.now() - new Date(app.patient.date_of_birth)) / (365.25 * 24 * 60 * 60 * 1000))} yrs
                                                                         </span>
@@ -326,23 +326,23 @@ const Schedule = () => {
                                                                         <span className="capitalize">{app.type} Visit</span>
                                                                     </span>
                                                                 </div>
-                                                                <div className="mt-2 text-sm font-medium text-gray-800 flex items-center gap-2">
-                                                                    <span className="text-blue-600">🕒 {app.timeSlot || app.time_slot}</span>
-                                                                    <span className="text-gray-400">|</span>
+<div className="mt-2 text-sm font-medium text-foreground flex items-center gap-2">
+                                    <span className="text-accent">🕒 {app.timeSlot || app.time_slot}</span>
+                                    <span className="text-foreground-subtle">|</span>
                                                                     <span>📅 {new Date(app.date).toLocaleDateString('en-US', {
                                                                         weekday: 'short', month: 'short', day: 'numeric'
                                                                     })}</span>
                                                                     {timeUntil && app.status === 'confirmed' && (
                                                                         <>
-                                                                            <span className="text-gray-400">|</span>
-                                                                            <span className={`${timeUntil === 'Starting now!' || timeUntil === 'In Progress' ? 'text-green-600 font-bold' : 'text-gray-500'}`}>
+<span className="text-foreground-subtle">|</span>
+                                            <span className={`${timeUntil === 'Starting now!' || timeUntil === 'In Progress' ? 'text-success font-bold' : 'text-foreground-muted'}`}>
                                                                                 {timeUntil}
                                                                             </span>
                                                                         </>
                                                                     )}
                                                                 </div>
-                                                                {app.reason && (
-                                                                    <div className="mt-2 text-sm text-gray-600 bg-gray-50 px-3 py-1 rounded-lg inline-block border border-gray-100">
+{app.reason && (
+                                    <div className="mt-2 text-sm text-foreground-muted bg-surface-secondary/60 px-3 py-1 rounded-xl inline-block border border-white/5">
                                                                         Reason: {app.reason}
                                                                     </div>
                                                                 )}
@@ -355,7 +355,7 @@ const Schedule = () => {
                                                                     <Button
                                                                         variant="outline"
                                                                         onClick={() => handleStatusUpdate(appointmentId, 'cancelled')}
-                                                                        className="text-red-600 border-red-200 hover:bg-red-50"
+                                                                        className="text-error border-error/20 hover:bg-error/10"
                                                                     >
                                                                         Reject
                                                                     </Button>
@@ -400,7 +400,7 @@ const Schedule = () => {
                                                             {filterStatus === 'history' && !['completed', 'cancelled'].includes(app.status) && (
                                                                 <Button 
                                                                     size="sm"
-                                                                    className="bg-blue-600"
+                                                                    className="bg-accent"
                                                                     onClick={() => handleJoinCall(app)}
                                                                 >
                                                                     Go to Consultation
@@ -427,15 +427,15 @@ const Schedule = () => {
                     >
                         <GlassCard className="p-8">
                             <div className="flex justify-between items-center mb-6">
-                                <h2 className="text-xl font-bold text-gray-800">Weekly Availability</h2>
+                                <h2 className="text-xl font-bold text-foreground">Weekly Availability</h2>
                                 <Button onClick={saveAvailability}>Save Changes</Button>
                             </div>
-                            <p className="text-gray-600 text-sm mb-6">
+                            <p className="text-foreground-muted text-sm mb-6">
                                 Set your working hours. Patients will only be able to book appointments during these times.
                             </p>
                             <div className="space-y-4">
                                 {Object.entries(availability).map(([day, schedule]) => (
-                                    <div key={day} className={`flex items-center justify-between p-4 rounded-xl border transition-colors ${schedule.active ? 'bg-white border-gray-200 hover:border-blue-200' : 'bg-gray-50 border-gray-100'
+                                    <div key={day} className={`flex items-center justify-between p-4 rounded-xl border transition-colors ${schedule.active ? 'bg-surface-secondary border-white/[0.06] hover:border-accent/20' : 'bg-surface-secondary/60 border-white/5'
                                         }`}>
                                         <div className="flex items-center space-x-4">
                                             <div className="relative inline-flex items-center cursor-pointer">
@@ -445,26 +445,26 @@ const Schedule = () => {
                                                     checked={schedule.active}
                                                     onChange={(e) => handleAvailabilityChange(day, 'active', e.target.checked)}
                                                 />
-                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                                <div className="w-11 h-6 bg-surface-tertiary peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-accent/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-white/5 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
                                             </div>
-                                            <span className={`font-medium w-24 ${schedule.active ? 'text-gray-700' : 'text-gray-400'}`}>{day}</span>
+                                            <span className={`font-medium w-24 ${schedule.active ? 'text-foreground' : 'text-foreground-subtle'}`}>{day}</span>
                                         </div>
 
                                         <div className={`flex items-center space-x-4 transition-opacity ${schedule.active ? 'opacity-100' : 'opacity-40 pointer-events-none'}`}>
                                             <select
                                                 value={schedule.start}
                                                 onChange={(e) => handleAvailabilityChange(day, 'start', e.target.value)}
-                                                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                                className="px-3 py-2 border border-white/[0.14] rounded-xl focus:ring-2 focus:ring-accent outline-none bg-surface-secondary text-foreground"
                                             >
                                                 {['08:00 AM', '09:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', '01:00 PM', '02:00 PM'].map(t => (
                                                     <option key={t} value={t}>{t}</option>
                                                 ))}
                                             </select>
-                                            <span className="text-gray-400">to</span>
+                                            <span className="text-foreground-subtle">to</span>
                                             <select
                                                 value={schedule.end}
                                                 onChange={(e) => handleAvailabilityChange(day, 'end', e.target.value)}
-                                                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                                className="px-3 py-2 border border-white/[0.14] rounded-xl focus:ring-2 focus:ring-accent outline-none bg-surface-secondary text-foreground"
                                             >
                                                 {['12:00 PM', '01:00 PM', '02:00 PM', '03:00 PM', '04:00 PM', '05:00 PM', '06:00 PM', '07:00 PM', '08:00 PM'].map(t => (
                                                     <option key={t} value={t}>{t}</option>

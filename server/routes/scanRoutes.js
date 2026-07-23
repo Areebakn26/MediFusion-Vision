@@ -11,7 +11,8 @@ const {
     uploadExternalScan,
     uploadInternalScan,
     getAIAnalysis,
-    provideFeedback
+    provideFeedback,
+    deleteScan
 } = require('../controllers/scanController');
 const { protect, requireRole } = require('../middleware/authMiddleware');
 
@@ -47,5 +48,8 @@ router.post('/:id/report', protect, requireRole(['doctor']), createReport);
 
 // Provide feedback on AI analysis
 router.post('/:id/feedback', protect, requireRole(['doctor', 'admin']), provideFeedback);
+
+// Delete scan (Patient/Admin)
+router.delete('/:id', protect, deleteScan);
 
 module.exports = router;

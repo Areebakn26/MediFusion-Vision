@@ -33,7 +33,7 @@ export const TabGroup = ({ children, defaultValue, tabs, onChange, className = "
 
 export const TabList = ({ children, className = "" }) => {
     return (
-        <div className={`flex gap-2 p-1 bg-gray-100/50 rounded-2xl mb-6 ${className}`}>
+        <div className={`flex gap-1 p-1 bg-surface-secondary rounded-xl border border-white/[0.06] mb-6 ${className}`}>
             {children}
         </div>
     );
@@ -46,10 +46,10 @@ export const Tab = ({ value, children, className = "" }) => {
     return (
         <button
             onClick={() => handleTabChange(value)}
-            className={`flex-1 px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ${
-                isActive 
-                ? 'bg-white text-blue-600 shadow-sm border border-blue-50' 
-                : 'text-gray-500 hover:bg-gray-200/50 hover:text-gray-700'
+            className={`flex-1 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+                isActive
+                ? 'bg-surface text-foreground shadow-sm'
+                : 'text-foreground-muted hover:bg-surface-tertiary hover:text-foreground'
             } ${className}`}
         >
             {children}
@@ -66,7 +66,7 @@ export const TabPanel = ({ value, children, className = "" }) => {
     if (activeTab !== value) return null;
 
     return (
-        <div className={`animate-in fade-in slide-in-from-bottom-2 duration-300 ${className}`}>
+        <div className={`animate-fade-in ${className}`}>
             {children}
         </div>
     );

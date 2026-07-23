@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { getMe } from '../services/api';
+import { AnimatedLogo } from '../components/brand';
 import { GlassCard, Input } from '../components/ui';
 import { useTranslation } from 'react-i18next';
 
@@ -23,30 +24,24 @@ const Login = () => {
         try {
             const data = await login(email, password);
 
-            // Route based on role and verification status
             if (data.role === 'patient') {
                 navigate('/patient/dashboard');
             } else if (data.role === 'doctor') {
-                // Check verification status and profile completion
                 try {
                     const { data: userData } = await getMe();
                     const profile = userData.profile;
 
-                    // If no profile or profile incomplete, go to profile page
                     if (!profile || !profile.pmdc_number || !profile.specialization) {
                         navigate('/doctor/profile');
                     }
-                    // If verified, go to dashboard
                     else if (profile.verification_status === 'approved') {
                         navigate('/doctor/dashboard');
                     }
-                    // If pending or rejected, go to dashboard (will show banner)
                     else {
                         navigate('/doctor/dashboard');
                     }
                 } catch (err) {
                     console.error('Error checking doctor profile:', err);
-                    // If can't fetch profile, go to profile page
                     navigate('/doctor/profile');
                 }
             } else if (data.role === 'admin') {
@@ -71,15 +66,15 @@ const Login = () => {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-teal-50 relative overflow-hidden">
-            {/* Floating Background Shapes */}
+        <div className="min-h-screen flex items-center justify-center bg-surface relative overflow-hidden">
+            <div className="fixed inset-0 bg-gradient-to-br from-accent-subtle/20 via-surface to-medical-subtle/20" />
             <motion.div
-                className="absolute top-20 left-20 w-64 h-64 bg-teal-200/40 rounded-full blur-3xl"
+                className="absolute top-20 left-20 w-64 h-64 bg-accent-subtle/30 rounded-full blur-3xl"
                 animate={{ y: [0, 30, 0], x: [0, 20, 0] }}
                 transition={{ duration: 8, repeat: Infinity }}
             />
             <motion.div
-                className="absolute bottom-20 right-20 w-96 h-96 bg-blue-200/40 rounded-full blur-3xl"
+                className="absolute bottom-20 right-20 w-96 h-96 bg-medical-subtle/30 rounded-full blur-3xl"
                 animate={{ y: [0, -30, 0], x: [0, -20, 0] }}
                 transition={{ duration: 10, repeat: Infinity }}
             />
@@ -91,69 +86,57 @@ const Login = () => {
                 className="w-full max-w-md px-4 z-10"
             >
                 <GlassCard className="p-8" hover={false}>
-                    {/* Header */}
                     <div className="text-center mb-8">
                         <Link to="/" className="inline-block mb-4">
-                            <span className="text-2xl font-bold text-gray-800">
-                                Medi<span className="text-teal-600">Fusion</span>
+                            <AnimatedLogo size={40} animate={false} />
+                            <span className="text-xl font-light text-foreground">
+                                Medi<span className="text-accent font-normal">Fusion</span>
                             </span>
                         </Link>
-                        <h2 className="text-3xl font-bold text-gray-800 mb-2">
+                        <h2 className="text-2xl font-light text-foreground mb-1">
                             {t('auth.welcomeBack', 'Welcome Back')}
                         </h2>
-                        <p className="text-gray-600">{t('auth.signInToAccount', 'Sign in to your account')}</p>
+                        <p className="text-foreground-muted text-sm">{t('auth.signInToAccount', 'Sign in to your account')}</p>
                     </div>
 
-                    {/* Error Message */}
                     {error && (
                         <motion.div
                             initial={{ opacity: 0, y: -10 }}
                             animate={{ opacity: 1, y: 0 }}
                             aria-live="polite"
-                            className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm"
+                            className="mb-6 p-4 rounded-xl bg-error/10 border border-error/20 text-error text-sm"
                         >
-                            ❌ {error}
+                            {error}
                         </motion.div>
                     )}
 
-                    {/* Form */}
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                        <div>
-                            <label htmlFor="login-email" className="block text-sm font-medium mb-2 text-gray-700">
-                                {t('auth.email', 'Email Address')}
-                            </label>
-                            <input
-                                id="login-email"
-                                type="email"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                placeholder={t('auth.emailPlaceholder', 'your@email.com')}
-                                required
-                                aria-required="true"
-                                className="w-full px-4 py-3 rounded-xl bg-white border border-gray-200 text-gray-800 placeholder-gray-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-200 outline-none transition-all"
-                            />
-                        </div>
+                    <form onSubmit={handleSubmit} className="space-y-5">
+                        <Input
+                            id="login-email"
+                            label={t('auth.email', 'Email Address')}
+                            type="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            placeholder={t('auth.emailPlaceholder', 'your@email.com')}
+                            required
+                            aria-required="true"
+                        />
 
-                        <div>
-                            <label htmlFor="login-password" className="block text-sm font-medium mb-2 text-gray-700">
-                                {t('auth.password', 'Password')}
-                            </label>
-                            <input
-                                id="login-password"
-                                type="password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                placeholder="••••••••"
-                                required
-                                aria-required="true"
-                                className="w-full px-4 py-3 rounded-xl bg-white border border-gray-200 text-gray-800 placeholder-gray-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-200 outline-none transition-all"
-                            />
-                        </div>
+                        <Input
+                            id="login-password"
+                            label={t('auth.password', 'Password')}
+                            type="password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            placeholder="••••••••"
+                            required
+                            aria-required="true"
+                        />
 
                         <div className="flex items-center justify-between text-sm">
                             <Link
                                 to="/forgot-password"
-                                className="text-teal-600 hover:underline font-medium"
+                                className="text-accent hover:underline font-medium"
                                 aria-label={t('auth.forgotPassword', 'Forgot password?')}
                             >
                                 {t('auth.forgotPassword', 'Forgot password?')}
@@ -164,7 +147,7 @@ const Login = () => {
                             type="submit"
                             disabled={loading}
                             aria-busy={loading}
-                            className={`w-full py-4 rounded-xl font-bold text-lg bg-teal-600 hover:bg-teal-700 text-white transition-all shadow-lg shadow-teal-200 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            className={`w-full py-3.5 rounded-button font-medium text-sm bg-accent hover:bg-accent-hover text-white transition-all active:scale-[0.97] shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)] focus:ring-2 focus:ring-accent/35 focus:outline-none ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
                             {loading ? (
                                 <span className="flex items-center justify-center gap-2">
@@ -180,13 +163,12 @@ const Login = () => {
                         </button>
                     </form>
 
-                    {/* Footer */}
                     <div className="mt-6 text-center">
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm text-foreground-muted">
                             Don't have an account?{' '}
                             <Link
                                 to="/register"
-                                className="text-teal-600 hover:underline font-medium"
+                                className="text-accent hover:underline font-medium"
                             >
                                 Sign up
                             </Link>

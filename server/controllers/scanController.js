@@ -1,4 +1,4 @@
-﻿const { Scan, Report, Patient, User, Doctor, AIFeedback, Appointment, Notification } = require('../models');
+const { Scan, Report, Patient, User, Doctor, AIFeedback, Appointment, Notification } = require('../models');
 const axios = require('axios');
 const FormData = require('form-data');
 const { generateReportPDF } = require('../utils/pdfGenerator');
@@ -137,7 +137,15 @@ const getScans = async (req, res) => {
             const doctorProfile = await Doctor.findOne({ where: { user_id: req.user.id } });
             if (!doctorProfile) return res.status(404).json({ message: 'Doctor profile not found' });
 
+            // Only show scans from patients who have booked appointments with this doctor
+            const appointments = await Appointment.findAll({
+                where: { doctor_id: doctorProfile.id },
+                attributes: ['patient_id'],
+            });
+            const patientIds = [...new Set(appointments.map(a => a.patient_id))];
+
             scans = await Scan.findAll({
+                where: patientIds.length > 0 ? { patient_id: patientIds } : { id: null },
                 include: [
                     {
                         model: Patient,
@@ -255,7 +263,10 @@ const createReport = async (req, res) => {
             return res.status(404).json({ message: 'Scan not found' });
         }
 
-        const doctorProfile = await Doctor.findOne({ where: { user_id: req.user.id } });
+        const doctorProfile = await Doctor.findOne({
+            where: { user_id: req.user.id },
+            include: [{ model: User, attributes: ['name'] }]
+        });
         if (!doctorProfile) {
             return res.status(404).json({ message: 'Doctor profile not found' });
         }
@@ -310,7 +321,7 @@ const createReport = async (req, res) => {
                     title: 'Medical Report Ready',
                     message: `Your diagnostic report for ${scan.scan_type} has been finalized by Dr. ${doctorProfile.User.name}.`,
                     type: 'report_ready',
-                    link: `/patient/scans/${scan.id}`
+                    link: `/patient/scans/results/${scan.id}`
                 });
 
                 console.log(`[REPORT] PDF generated and notification sent for report ${report.id}`);
@@ -360,11 +371,11 @@ const runAIAnalysis = async (req, res) => {
                 where: {
                     doctor_id: doctorProfile.id,
                     patient_id: scan.patient_id,
-                    status: 'confirmed'
+                    status: { [Op.in]: ['confirmed', 'completed'] }
                 }
             });
             if (!hasAppt) {
-                return res.status(403).json({ message: 'Access denied: No confirmed appointment with this patient' });
+                return res.status(403).json({ message: 'Access denied: No appointment with this patient' });
             }
         }
 
@@ -464,11 +475,11 @@ const runBrainAIAnalysis = async (req, res) => {
                 where: {
                     doctor_id: doctorProfile.id,
                     patient_id: scan.patient_id,
-                    status: 'confirmed'
+                    status: { [Op.in]: ['confirmed', 'completed'] }
                 }
             });
             if (!hasAppt) {
-                return res.status(403).json({ message: 'Access denied: No confirmed appointment with this patient' });
+                return res.status(403).json({ message: 'Access denied: No appointment with this patient' });
             }
         }
 
@@ -788,6 +799,40 @@ const getAIAnalysis = async (req, res) => {
     }
 };
 
+// @desc    Delete a scan
+// @route   DELETE /api/scans/:id
+// @access  Private (Patient/Admin)
+const deleteScan = async (req, res) => {
+    try {
+        const scan = await Scan.findByPk(req.params.id);
+        if (!scan) {
+            return res.status(404).json({ message: 'Scan not found' });
+        }
+
+        if (req.user.role === 'patient') {
+            const patientProfile = await Patient.findOne({ where: { user_id: req.user.id } });
+            if (!patientProfile || scan.patient_id !== patientProfile.id) {
+                return res.status(403).json({ message: 'Access denied: You can only delete your own scans.' });
+            }
+        } else if (req.user.role !== 'admin') {
+            return res.status(403).json({ message: 'Access denied' });
+        }
+
+        // Delete files from storage if they exist
+        const fsPromises = require('fs').promises;
+        if (scan.file_url) {
+            const filePath = path.join(__dirname, '..', scan.file_url);
+            await fsPromises.unlink(filePath).catch(() => {});
+        }
+
+        await scan.destroy();
+        res.json({ message: 'Scan deleted successfully' });
+    } catch (error) {
+        console.error("Delete Scan Error:", error);
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};
+
 module.exports = {
     uploadScan,
     getScans,
@@ -799,5 +844,7 @@ module.exports = {
     uploadInternalScan,
     getAIAnalysis,
     provideFeedback,
-    generateReportPDF
+    generateReportPDF,
+    deleteScan
 };
+

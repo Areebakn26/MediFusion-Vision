@@ -150,8 +150,8 @@ const ProfileSettings = () => {
         return (
             <div className="min-h-screen flex items-center justify-center">
                 <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto mb-4"></div>
-                    <p className="text-gray-500">Loading profile...</p>
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent mx-auto mb-4"></div>
+                    <p className="text-foreground-muted">Loading profile...</p>
                 </div>
             </div>
         );
@@ -160,7 +160,7 @@ const ProfileSettings = () => {
     // Show completion success screen
     if (justCompleted) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-teal-50/30 p-6">
+            <div className="min-h-screen flex items-center justify-center bg-surface p-6">
                 <motion.div
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -171,20 +171,20 @@ const ProfileSettings = () => {
                             initial={{ scale: 0 }}
                             animate={{ scale: 1 }}
                             transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-                            className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6"
+                            className="w-24 h-24 bg-success/10 rounded-full flex items-center justify-center mx-auto mb-6"
                         >
                             <span className="text-5xl">✅</span>
                         </motion.div>
 
-                        <h1 className="text-3xl font-bold text-gray-800 mb-3">Profile Complete!</h1>
-                        <p className="text-gray-600 mb-8">
+                        <h1 className="text-3xl font-bold text-foreground mb-3">Profile Complete!</h1>
+                        <p className="text-foreground-muted mb-8">
                             Your medical profile has been successfully saved. You can now book appointments with our verified doctors.
                         </p>
 
                         <div className="space-y-4">
                             <Link
                                 to="/patient/find-doctors"
-                                className="block w-full py-4 px-6 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl transition-colors shadow-lg shadow-teal-200"
+                                className="block w-full py-4 px-6 bg-accent hover:bg-accent-hover text-white font-bold rounded-xl transition-colors"
                             >
                                 Find Doctors & Book Appointment
                             </Link>
@@ -194,7 +194,7 @@ const ProfileSettings = () => {
                                     setJustCompleted(false);
                                     setShowEditForm(false);
                                 }}
-                                className="block w-full py-4 px-6 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl transition-colors"
+                                className="block w-full py-4 px-6 bg-surface-secondary/80 hover:bg-surface-tertiary text-foreground-muted font-bold rounded-xl transition-colors"
                             >
                                 View My Profile
                             </button>
@@ -208,7 +208,7 @@ const ProfileSettings = () => {
     // Show profile view mode when complete and not editing
     if (isProfileComplete && !showEditForm) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-gray-50 to-teal-50/30 p-6">
+            <div className="min-h-screen bg-surface p-6">
                 <div className="max-w-4xl mx-auto">
                     {/* Header */}
                     <motion.div
@@ -217,12 +217,12 @@ const ProfileSettings = () => {
                         className="mb-8 flex items-center justify-between"
                     >
                         <div>
-                            <h1 className="text-3xl font-bold text-gray-800 mb-2">{t('profile', 'My Profile')}</h1>
-                            <p className="text-gray-600">{t('profile_subtitle', 'Your personal and medical information')}</p>
+                            <h1 className="text-3xl font-bold text-foreground mb-2">{t('profile', 'My Profile')}</h1>
+                            <p className="text-foreground-muted">{t('profile_subtitle', 'Your personal and medical information')}</p>
                         </div>
                         <button
                             onClick={() => setShowEditForm(true)}
-                            className="px-6 py-3 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl transition-colors shadow-lg shadow-teal-200"
+                            className="px-6 py-3 bg-accent hover:bg-accent-hover text-white font-bold rounded-xl transition-colors"
                         >
                             ✏️ {t('editProfile_btn', 'Edit Profile')}
                         </button>
@@ -233,7 +233,7 @@ const ProfileSettings = () => {
                         <motion.div
                             initial={{ opacity: 0, y: -10 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="mb-6 p-4 rounded-xl bg-green-50 border border-green-200 text-green-700"
+                            className="mb-6 p-4 rounded-xl bg-success/10 border border-success/20 text-success"
                         >
                             ✅ {success}
                         </motion.div>
@@ -242,70 +242,70 @@ const ProfileSettings = () => {
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         {/* Personal Info Card */}
                         <GlassCard className="p-6">
-                            <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                            <h2 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
                                 <span>👤</span> {t('personalInfo_title', 'Personal Information')}
                             </h2>
                             <div className="space-y-3">
-                                <div className="flex justify-between py-2 border-b border-gray-100">
-                                    <span className="text-gray-500">{t('name_label', 'Name')}</span>
-                                    <span className="font-medium text-gray-800">{user?.name}</span>
+                                <div className="flex justify-between py-2 border-b border-white/5">
+                                    <span className="text-foreground-muted">{t('name_label', 'Name')}</span>
+                                    <span className="font-medium text-foreground">{user?.name}</span>
                                 </div>
-                                <div className="flex justify-between py-2 border-b border-gray-100">
-                                    <span className="text-gray-500">{t('email_label', 'Email')}</span>
-                                    <span className="font-medium text-gray-800">{user?.email}</span>
+                                <div className="flex justify-between py-2 border-b border-white/5">
+                                    <span className="text-foreground-muted">{t('email_label', 'Email')}</span>
+                                    <span className="font-medium text-foreground">{user?.email}</span>
                                 </div>
-                                <div className="flex justify-between py-2 border-b border-gray-100">
-                                    <span className="text-gray-500">{t('phone_label', 'Phone')}</span>
-                                    <span className="font-medium text-gray-800">{formData.phone || 'Not set'}</span>
+                                <div className="flex justify-between py-2 border-b border-white/5">
+                                    <span className="text-foreground-muted">{t('phone_label', 'Phone')}</span>
+                                    <span className="font-medium text-foreground">{formData.phone || 'Not set'}</span>
                                 </div>
-                                <div className="flex justify-between py-2 border-b border-gray-100">
-                                    <span className="text-gray-500">{t('cnic_label', 'CNIC')}</span>
-                                    <span className="font-medium text-gray-800">{formData.cnic || 'Not set'}</span>
+                                <div className="flex justify-between py-2 border-b border-white/5">
+                                    <span className="text-foreground-muted">{t('cnic_label', 'CNIC')}</span>
+                                    <span className="font-medium text-foreground">{formData.cnic || 'Not set'}</span>
                                 </div>
-                                <div className="flex justify-between py-2 border-b border-gray-100">
-                                    <span className="text-gray-500">{t('dob_label', 'Date of Birth')}</span>
-                                    <span className="font-medium text-gray-800">{formData.dateOfBirth || 'Not set'}</span>
+                                <div className="flex justify-between py-2 border-b border-white/5">
+                                    <span className="text-foreground-muted">{t('dob_label', 'Date of Birth')}</span>
+                                    <span className="font-medium text-foreground">{formData.dateOfBirth || 'Not set'}</span>
                                 </div>
-                                <div className="flex justify-between py-2 border-b border-gray-100">
-                                    <span className="text-gray-500">{t('gender_label', 'Gender')}</span>
-                                    <span className="font-medium text-gray-800 capitalize">{formData.gender || 'Not set'}</span>
+                                <div className="flex justify-between py-2 border-b border-white/5">
+                                    <span className="text-foreground-muted">{t('gender_label', 'Gender')}</span>
+                                    <span className="font-medium text-foreground capitalize">{formData.gender || 'Not set'}</span>
                                 </div>
                                 <div className="flex justify-between py-2">
-                                    <span className="text-gray-500">{t('address_label', 'Address')}</span>
-                                    <span className="font-medium text-gray-800 text-right max-w-[200px]">{formData.address || 'Not set'}</span>
+                                    <span className="text-foreground-muted">{t('address_label', 'Address')}</span>
+                                    <span className="font-medium text-foreground text-right max-w-[200px]">{formData.address || 'Not set'}</span>
                                 </div>
                             </div>
                         </GlassCard>
 
                         {/* Medical Info Card */}
                         <GlassCard className="p-6">
-                            <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                            <h2 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
                                 <span>🏥</span> {t('medicalInfo_title', 'Medical Information')}
                             </h2>
                             <div className="space-y-3">
-                                <div className="flex justify-between py-2 border-b border-gray-100">
-                                    <span className="text-gray-500">{t('bloodGroup_label', 'Blood Group')}</span>
-                                    <span className="font-medium text-gray-800">{formData.bloodGroup || 'Not set'}</span>
+                                <div className="flex justify-between py-2 border-b border-white/5">
+                                    <span className="text-foreground-muted">{t('bloodGroup_label', 'Blood Group')}</span>
+                                    <span className="font-medium text-foreground">{formData.bloodGroup || 'Not set'}</span>
                                 </div>
-                                <div className="flex justify-between py-2 border-b border-gray-100">
-                                    <span className="text-gray-500">{t('height_label', 'Height')}</span>
-                                    <span className="font-medium text-gray-800">{formData.height ? `${formData.height} cm` : 'Not set'}</span>
+                                <div className="flex justify-between py-2 border-b border-white/5">
+                                    <span className="text-foreground-muted">{t('height_label', 'Height')}</span>
+                                    <span className="font-medium text-foreground">{formData.height ? `${formData.height} cm` : 'Not set'}</span>
                                 </div>
-                                <div className="flex justify-between py-2 border-b border-gray-100">
-                                    <span className="text-gray-500">{t('weight_label', 'Weight')}</span>
-                                    <span className="font-medium text-gray-800">{formData.weight ? `${formData.weight} kg` : 'Not set'}</span>
+                                <div className="flex justify-between py-2 border-b border-white/5">
+                                    <span className="text-foreground-muted">{t('weight_label', 'Weight')}</span>
+                                    <span className="font-medium text-foreground">{formData.weight ? `${formData.weight} kg` : 'Not set'}</span>
                                 </div>
-                                <div className="flex justify-between py-2 border-b border-gray-100">
-                                    <span className="text-gray-500">{t('allergies_label', 'Allergies')}</span>
-                                    <span className="font-medium text-gray-800">{formData.allergies || 'None'}</span>
+                                <div className="flex justify-between py-2 border-b border-white/5">
+                                    <span className="text-foreground-muted">{t('allergies_label', 'Allergies')}</span>
+                                    <span className="font-medium text-foreground">{formData.allergies || 'None'}</span>
                                 </div>
-                                <div className="pt-4 border-t border-gray-200 mt-4">
-                                    <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                                <div className="pt-4 border-t border-white/[0.06] mt-4">
+                                    <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
                                         <span>🆘</span> {t('emergencyContact_title', 'Emergency Contact')}
                                     </h3>
                                     <div className="flex justify-between py-2">
-                                        <span className="text-gray-500">{t('emergencyPhone_label', 'Phone')}</span>
-                                        <span className="font-medium text-gray-800">{formData.emergencyContactPhone || 'Not set'}</span>
+                                        <span className="text-foreground-muted">{t('emergencyPhone_label', 'Phone')}</span>
+                                        <span className="font-medium text-foreground">{formData.emergencyContactPhone || 'Not set'}</span>
                                     </div>
                                 </div>
                             </div>
@@ -315,11 +315,11 @@ const ProfileSettings = () => {
                     {/* Preferences Card */}
                     <div className="mt-6">
                         <GlassCard className="p-6">
-                            <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                            <h2 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
                                 <span>⚙️</span> {t('preferences_title', 'Preferences')}
                             </h2>
                             <div className="flex justify-between items-center py-2">
-                                <span className="text-gray-500 font-medium">{t('appLanguage_label', 'Application Language')}</span>
+                                <span className="text-foreground-muted font-medium">{t('appLanguage_label', 'Application Language')}</span>
                                 <LanguageSwitcher />
                             </div>
                         </GlassCard>
@@ -329,13 +329,13 @@ const ProfileSettings = () => {
                     <div className="mt-8 flex flex-wrap gap-4">
                         <Link
                             to="/patient/find-doctors"
-                            className="px-6 py-3 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl transition-colors"
+                            className="px-6 py-3 bg-accent hover:bg-accent-hover text-white font-bold rounded-xl transition-colors"
                         >
                             Find Doctors
                         </Link>
                         <Link
                             to="/patient/appointments"
-                            className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-colors"
+                            className="px-6 py-3 bg-accent hover:bg-accent-hover text-white font-bold rounded-xl transition-colors"
                         >
                             My Appointments
                         </Link>
@@ -347,7 +347,7 @@ const ProfileSettings = () => {
 
     // Show edit form
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-teal-50/30 p-6">
+        <div className="min-h-screen bg-surface p-6">
             <div className="max-w-4xl mx-auto">
                 {/* Header */}
                 <motion.div
@@ -356,10 +356,10 @@ const ProfileSettings = () => {
                     className="mb-8 flex items-center justify-between"
                 >
                     <div>
-                        <h1 className="text-3xl font-bold text-gray-800 mb-2">
+                        <h1 className="text-3xl font-bold text-foreground mb-2">
                             {isProfileComplete ? t('editProfile_btn', 'Edit Profile') : 'Complete Your Profile'}
                         </h1>
-                        <p className="text-gray-600">
+                        <p className="text-foreground-muted">
                             {isProfileComplete
                                 ? t('profile_subtitle', 'Update your personal and medical information')
                                 : 'Please complete your profile to start booking appointments'}
@@ -368,7 +368,7 @@ const ProfileSettings = () => {
                     {isProfileComplete && (
                         <button
                             onClick={() => setShowEditForm(false)}
-                            className="px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold rounded-xl transition-colors"
+                            className="px-6 py-3 bg-surface-secondary hover:bg-surface-tertiary text-foreground-muted font-bold rounded-xl transition-colors"
                         >
                             Cancel
                         </button>
@@ -382,21 +382,21 @@ const ProfileSettings = () => {
                         animate={{ opacity: 1, y: 0 }}
                         className="mb-6"
                     >
-                        <GlassCard className="p-6 border-l-4 border-l-orange-500 bg-orange-50">
+                        <GlassCard className="p-6 border-l-4 border-l-warning bg-warning/10">
                             <div className="flex items-start gap-4">
                                 <div className="text-3xl">⚠️</div>
                                 <div className="flex-1">
-                                    <h3 className="font-bold text-orange-800 mb-1">Profile Incomplete</h3>
-                                    <p className="text-orange-700 text-sm mb-3">
+                                    <h3 className="font-bold text-warning mb-1">Profile Incomplete</h3>
+                                    <p className="text-warning text-sm mb-3">
                                         Complete your medical profile to book appointments with doctors.
                                     </p>
-                                    <div className="w-full bg-orange-200 rounded-full h-2">
+                                    <div className="w-full bg-warning/20 rounded-full h-2">
                                         <div
-                                            className="bg-orange-500 h-2 rounded-full transition-all"
+                                            className="bg-warning h-2 rounded-full transition-all"
                                             style={{ width: `${completionPercentage}%` }}
                                         ></div>
                                     </div>
-                                    <p className="text-xs text-orange-600 mt-1">{completionPercentage}% complete</p>
+                                    <p className="text-xs text-warning mt-1">{completionPercentage}% complete</p>
                                 </div>
                             </div>
                         </GlassCard>
@@ -408,7 +408,7 @@ const ProfileSettings = () => {
                     <motion.div
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="mb-6 p-4 rounded-xl bg-green-50 border border-green-200 text-green-700"
+                        className="mb-6 p-4 rounded-xl bg-success/10 border border-success/20 text-success"
                     >
                         ✅ {success}
                     </motion.div>
@@ -418,7 +418,7 @@ const ProfileSettings = () => {
                     <motion.div
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 text-red-600"
+                            className="mb-6 p-4 rounded-xl bg-error/10 border border-error/20 text-error"
                     >
                         ❌ {error}
                     </motion.div>
@@ -428,39 +428,39 @@ const ProfileSettings = () => {
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         {/* Personal Information */}
                         <GlassCard className="p-6">
-                            <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                            <h2 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
                                 <span>👤</span> {t('personalInfo_title', 'Personal Information')}
                             </h2>
 
                             <div className="space-y-4">
                                 <div>
-                                    <label className="block text-sm font-medium mb-2 text-gray-700">
+                                    <label className="block text-sm font-medium mb-2 text-foreground-muted">
                                         {t('name_label', 'Full Name')}
                                     </label>
                                     <input
                                         type="text"
                                         value={user?.name || ''}
                                         disabled
-                                        className="w-full px-4 py-3 rounded-xl bg-gray-100 border border-gray-200 text-gray-500"
+                                        className="w-full px-4 py-3 rounded-xl bg-surface-secondary/80 border border-white/[0.06] text-foreground-subtle"
                                     />
-                                    <p className="text-xs text-gray-400 mt-1">Contact support to change name</p>
+                                    <p className="text-xs text-foreground-subtle mt-1">Contact support to change name</p>
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium mb-2 text-gray-700">
+                                    <label className="block text-sm font-medium mb-2 text-foreground-muted">
                                         {t('email_label', 'Email')}
                                     </label>
                                     <input
                                         type="email"
                                         value={user?.email || ''}
                                         disabled
-                                        className="w-full px-4 py-3 rounded-xl bg-gray-100 border border-gray-200 text-gray-500"
+                                        className="w-full px-4 py-3 rounded-xl bg-surface-secondary/80 border border-white/[0.06] text-foreground-subtle"
                                     />
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium mb-2 text-gray-700">
-                                        {t('phone_label', 'Phone Number')} <span className="text-red-500">*</span>
+                                    <label className="block text-sm font-medium mb-2 text-foreground-muted">
+                                        {t('phone_label', 'Phone Number')} <span className="text-error">*</span>
                                     </label>
                                     <input
                                         type="tel"
@@ -469,13 +469,13 @@ const ProfileSettings = () => {
                                         onChange={handleChange}
                                         placeholder="03001234567"
                                         required
-                                        className="w-full px-4 py-3 rounded-xl bg-white border border-gray-200 text-gray-800 focus:border-teal-500 focus:ring-2 focus:ring-teal-200 outline-none"
+                                        className="w-full border border-white/[0.14] rounded-xl px-4 py-2 focus:ring-2 focus:ring-accent focus:border-transparent"
                                     />
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium mb-2 text-gray-700">
-                                        {t('cnic_label', 'CNIC')} <span className="text-red-500">*</span>
+                                    <label className="block text-sm font-medium mb-2 text-foreground-muted">
+                                        {t('cnic_label', 'CNIC')} <span className="text-error">*</span>
                                     </label>
                                     <input
                                         type="text"
@@ -484,13 +484,13 @@ const ProfileSettings = () => {
                                         onChange={handleChange}
                                         placeholder="12345-1234567-1"
                                         required
-                                        className="w-full px-4 py-3 rounded-xl bg-white border border-gray-200 text-gray-800 focus:border-teal-500 focus:ring-2 focus:ring-teal-200 outline-none"
+                                        className="w-full border border-white/[0.14] rounded-xl px-4 py-2 focus:ring-2 focus:ring-accent focus:border-transparent"
                                     />
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium mb-2 text-gray-700">
-                                        {t('dob_label', 'Date of Birth')} <span className="text-red-500">*</span>
+                                    <label className="block text-sm font-medium mb-2 text-foreground-muted">
+                                        {t('dob_label', 'Date of Birth')} <span className="text-error">*</span>
                                     </label>
                                     <input
                                         type="date"
@@ -498,19 +498,19 @@ const ProfileSettings = () => {
                                         value={formData.dateOfBirth}
                                         onChange={handleChange}
                                         required
-                                        className="w-full px-4 py-3 rounded-xl bg-white border border-gray-200 text-gray-800 focus:border-teal-500 focus:ring-2 focus:ring-teal-200 outline-none"
+                                        className="w-full border border-white/[0.14] rounded-xl px-4 py-2 focus:ring-2 focus:ring-accent focus:border-transparent"
                                     />
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium mb-2 text-gray-700">
+                                    <label className="block text-sm font-medium mb-2 text-foreground-muted">
                                         {t('gender_label', 'Gender')}
                                     </label>
                                     <select
                                         name="gender"
                                         value={formData.gender}
                                         onChange={handleChange}
-                                        className="w-full px-4 py-3 rounded-xl bg-white border border-gray-200 text-gray-800 focus:border-teal-500 focus:ring-2 focus:ring-teal-200 outline-none"
+                                        className="w-full border border-white/[0.14] rounded-xl px-4 py-2 focus:ring-2 focus:ring-accent focus:border-transparent"
                                     >
                                         <option value="male">Male</option>
                                         <option value="female">Female</option>
@@ -519,8 +519,8 @@ const ProfileSettings = () => {
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium mb-2 text-gray-700">
-                                        {t('address_label', 'Address')} <span className="text-red-500">*</span>
+                                    <label className="block text-sm font-medium mb-2 text-foreground-muted">
+                                        {t('address_label', 'Address')} <span className="text-error">*</span>
                                     </label>
                                     <textarea
                                         name="address"
@@ -529,7 +529,7 @@ const ProfileSettings = () => {
                                         placeholder="House #, Street, City"
                                         required
                                         rows={2}
-                                        className="w-full px-4 py-3 rounded-xl bg-white border border-gray-200 text-gray-800 focus:border-teal-500 focus:ring-2 focus:ring-teal-200 outline-none resize-none"
+                                        className="w-full border border-white/[0.14] rounded-xl px-4 py-2 focus:ring-2 focus:ring-accent focus:border-transparent resize-none"
                                     />
                                 </div>
                             </div>
@@ -537,20 +537,20 @@ const ProfileSettings = () => {
 
                         {/* Medical Information */}
                         <GlassCard className="p-6">
-                            <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                            <h2 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
                                 <span>🏥</span> {t('medicalInfo_title', 'Medical Information')}
                             </h2>
 
                             <div className="space-y-4">
                                 <div>
-                                    <label className="block text-sm font-medium mb-2 text-gray-700">
+                                    <label className="block text-sm font-medium mb-2 text-foreground-muted">
                                         {t('bloodGroup_label', 'Blood Group')}
                                     </label>
                                     <select
                                         name="bloodGroup"
                                         value={formData.bloodGroup}
                                         onChange={handleChange}
-                                        className="w-full px-4 py-3 rounded-xl bg-white border border-gray-200 text-gray-800 focus:border-teal-500 focus:ring-2 focus:ring-teal-200 outline-none"
+                                        className="w-full border border-white/[0.14] rounded-xl px-4 py-2 focus:ring-2 focus:ring-accent focus:border-transparent"
                                     >
                                         <option value="">Select Blood Group</option>
                                         <option value="A+">A+</option>
@@ -566,7 +566,7 @@ const ProfileSettings = () => {
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-sm font-medium mb-2 text-gray-700">
+                                        <label className="block text-sm font-medium mb-2 text-foreground-muted">
                                             {t('height_label', 'Height')} (cm)
                                         </label>
                                         <input
@@ -575,11 +575,11 @@ const ProfileSettings = () => {
                                             value={formData.height}
                                             onChange={handleChange}
                                             placeholder="175"
-                                            className="w-full px-4 py-3 rounded-xl bg-white border border-gray-200 text-gray-800 focus:border-teal-500 focus:ring-2 focus:ring-teal-200 outline-none"
+                                            className="w-full border border-white/[0.14] rounded-xl px-4 py-2 focus:ring-2 focus:ring-accent focus:border-transparent"
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium mb-2 text-gray-700">
+                                        <label className="block text-sm font-medium mb-2 text-foreground-muted">
                                             {t('weight_label', 'Weight')} (kg)
                                         </label>
                                         <input
@@ -588,13 +588,13 @@ const ProfileSettings = () => {
                                             value={formData.weight}
                                             onChange={handleChange}
                                             placeholder="70"
-                                            className="w-full px-4 py-3 rounded-xl bg-white border border-gray-200 text-gray-800 focus:border-teal-500 focus:ring-2 focus:ring-teal-200 outline-none"
+                                            className="w-full border border-white/[0.14] rounded-xl px-4 py-2 focus:ring-2 focus:ring-accent focus:border-transparent"
                                         />
                                     </div>
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium mb-2 text-gray-700">
+                                    <label className="block text-sm font-medium mb-2 text-foreground-muted">
                                         {t('allergies_label', 'Allergies')}
                                     </label>
                                     <input
@@ -603,18 +603,18 @@ const ProfileSettings = () => {
                                         value={formData.allergies}
                                         onChange={handleChange}
                                         placeholder="Peanuts, Penicillin (comma separated)"
-                                        className="w-full px-4 py-3 rounded-xl bg-white border border-gray-200 text-gray-800 focus:border-teal-500 focus:ring-2 focus:ring-teal-200 outline-none"
+                                        className="w-full border border-white/[0.14] rounded-xl px-4 py-2 focus:ring-2 focus:ring-accent focus:border-transparent"
                                     />
                                 </div>
 
-                                <div className="pt-4 border-t border-gray-100">
-                                    <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                                <div className="pt-4 border-t border-white/5">
+                                    <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
                                         <span>🆘</span> {t('emergencyContact_title', 'Emergency Contact')}
                                     </h3>
 
                                     <div className="space-y-4">
                                         <div>
-                                            <label className="block text-sm font-medium mb-2 text-gray-700">
+                                            <label className="block text-sm font-medium mb-2 text-foreground-muted">
                                                 {t('emergencyName_label', 'Contact Name')}
                                             </label>
                                             <input
@@ -623,12 +623,12 @@ const ProfileSettings = () => {
                                                 value={formData.emergencyContactName}
                                                 onChange={handleChange}
                                                 placeholder="Family member name"
-                                                className="w-full px-4 py-3 rounded-xl bg-white border border-gray-200 text-gray-800 focus:border-teal-500 focus:ring-2 focus:ring-teal-200 outline-none"
+                                                className="w-full border border-white/[0.14] rounded-xl px-4 py-2 focus:ring-2 focus:ring-accent focus:border-transparent"
                                             />
                                         </div>
                                         <div>
-                                            <label className="block text-sm font-medium mb-2 text-gray-700">
-                                                {t('emergencyPhone_label', 'Contact Phone')} <span className="text-red-500">*</span>
+                                            <label className="block text-sm font-medium mb-2 text-foreground-muted">
+                                                {t('emergencyPhone_label', 'Contact Phone')} <span className="text-error">*</span>
                                             </label>
                                             <input
                                                 type="tel"
@@ -637,7 +637,7 @@ const ProfileSettings = () => {
                                                 onChange={handleChange}
                                                 placeholder="03001234567"
                                                 required
-                                                className="w-full px-4 py-3 rounded-xl bg-white border border-gray-200 text-gray-800 focus:border-teal-500 focus:ring-2 focus:ring-teal-200 outline-none"
+                                                className="w-full border border-white/[0.14] rounded-xl px-4 py-2 focus:ring-2 focus:ring-accent focus:border-transparent"
                                             />
                                         </div>
                                     </div>
@@ -651,7 +651,7 @@ const ProfileSettings = () => {
                         <button
                             type="submit"
                             disabled={saving}
-                            className={`px-8 py-4 rounded-xl font-bold text-lg bg-teal-600 hover:bg-teal-700 text-white transition-all shadow-lg shadow-teal-200 ${saving ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            className={`px-8 py-4 rounded-xl font-bold text-lg bg-accent hover:bg-accent-hover text-white transition-all ${saving ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
                             {saving ? (
                                 <span className="flex items-center gap-2">

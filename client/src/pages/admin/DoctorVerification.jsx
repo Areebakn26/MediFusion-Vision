@@ -58,20 +58,20 @@ const DoctorVerification = () => {
                 <Button variant="ghost" onClick={() => navigate('/admin/verification')} className="px-3">
                     ← Back
                 </Button>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                <h1 className="text-3xl font-bold text-accent">
                     Verification Review
                 </h1>
             </div>
 
             <GlassCard className="p-8">
-                <div className="flex items-start justify-between mb-8 border-b border-gray-100 pb-6">
+                <div className="flex items-start justify-between mb-8 border-b border-white/5 pb-6">
                     <div className="flex items-center space-x-6">
-                        <div className="w-20 h-20 rounded-full bg-blue-100 flex items-center justify-center text-3xl font-bold text-blue-600 shadow-sm">
+                        <div className="w-20 h-20 rounded-full bg-accent-subtle flex items-center justify-center text-3xl font-bold text-accent shadow-card">
                             {(doctor.User?.name || doctor.name || 'D').charAt(0)}
                         </div>
                         <div>
-                            <h2 className="text-2xl font-bold text-gray-900">Dr. {doctor.User?.name || doctor.name}</h2>
-                            <p className="text-gray-500">{doctor.specialization}</p>
+                            <h2 className="text-2xl font-bold text-foreground">Dr. {doctor.User?.name || doctor.name}</h2>
+                            <p className="text-foreground-muted">{doctor.specialization}</p>
                             <Badge variant="warning" className="mt-2 text-xs">
                                 PENDING VERIFICATION
                             </Badge>
@@ -81,78 +81,78 @@ const DoctorVerification = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
                     {/* Submitted Data */}
-                    <div className="bg-gray-50/80 p-6 rounded-xl border border-gray-100">
-                        <h3 className="text-sm font-bold text-gray-500 uppercase mb-4 flex items-center gap-2">
+                    <div className="bg-surface-secondary/80 p-6 rounded-xl border border-white/5">
+                        <h3 className="text-sm font-bold text-foreground-muted uppercase mb-4 flex items-center gap-2">
                             <span>📄</span> Professional Details
                         </h3>
                         <div className="space-y-4 text-sm">
-                            <div className="flex justify-between border-b border-gray-200 pb-2">
-                                <span className="text-gray-500">Email</span>
-                                <span className="font-medium text-gray-800">{doctor.User?.email || 'N/A'}</span>
+                            <div className="flex justify-between border-b border-white/[0.06] pb-2">
+                                <span className="text-foreground-muted">Email</span>
+                                <span className="font-medium text-foreground">{doctor.User?.email || 'N/A'}</span>
                             </div>
-                            <div className="flex justify-between border-b border-gray-200 pb-2">
-                                <span className="text-gray-500">Phone</span>
-                                <span className="font-medium text-gray-800">{doctor.User?.phone || 'N/A'}</span>
+                            <div className="flex justify-between border-b border-white/[0.06] pb-2">
+                                <span className="text-foreground-muted">Phone</span>
+                                <span className="font-medium text-foreground">{doctor.User?.phone || 'N/A'}</span>
                             </div>
-                            <div className="flex justify-between border-b border-gray-200 pb-2">
-                                <span className="text-gray-500">PMDC Number</span>
-                                <span className="font-bold text-gray-800">{doctor.pmdc_number || doctor.pmdcNumber}</span>
+                            <div className="flex justify-between border-b border-white/[0.06] pb-2">
+                                <span className="text-foreground-muted">PMDC Number</span>
+                                <span className="font-bold text-foreground">{doctor.pmdc_number || doctor.pmdcNumber}</span>
                             </div>
-                            <div className="flex justify-between border-b border-gray-200 pb-2">
-                                <span className="text-gray-500">Specialization</span>
-                                <span className="font-medium text-gray-800">{doctor.specialization}</span>
+                            <div className="flex justify-between border-b border-white/[0.06] pb-2">
+                                <span className="text-foreground-muted">Specialization</span>
+                                <span className="font-medium text-foreground">{doctor.specialization}</span>
                             </div>
-                            <div className="flex justify-between border-b border-gray-200 pb-2">
-                                <span className="text-gray-500">Medical College</span>
-                                <span className="font-medium text-gray-800">{doctor.medical_college || doctor.medicalCollege}</span>
+                            <div className="flex justify-between border-b border-white/[0.06] pb-2">
+                                <span className="text-foreground-muted">Medical College</span>
+                                <span className="font-medium text-foreground">{doctor.medical_college || doctor.medicalCollege}</span>
                             </div>
-                            <div className="flex justify-between border-b border-gray-200 pb-2">
-                                <span className="text-gray-500">Passing Year</span>
-                                <span className="font-medium text-gray-800">{doctor.passing_year || doctor.passingYear || 'N/A'}</span>
+                            <div className="flex justify-between border-b border-white/[0.06] pb-2">
+                                <span className="text-foreground-muted">Passing Year</span>
+                                <span className="font-medium text-foreground">{doctor.passing_year || doctor.passingYear || 'N/A'}</span>
                             </div>
-                            <div className="flex justify-between border-b border-gray-200 pb-2">
-                                <span className="text-gray-500">Experience</span>
-                                <span className="font-medium text-gray-800">{doctor.experience_years || doctor.experience || 0} Years</span>
+                            <div className="flex justify-between border-b border-white/[0.06] pb-2">
+                                <span className="text-foreground-muted">Experience</span>
+                                <span className="font-medium text-foreground">{doctor.experience_years || doctor.experience || 0} Years</span>
                             </div>
-                            <div className="flex justify-between border-b border-gray-200 pb-2">
-                                <span className="text-gray-500">Consultation Fee</span>
-                                <span className="font-medium text-gray-800">PKR {doctor.consultation_fee || doctor.consultationFee || 0}</span>
+                            <div className="flex justify-between border-b border-white/[0.06] pb-2">
+                                <span className="text-foreground-muted">Consultation Fee</span>
+                                <span className="font-medium text-foreground">PKR {doctor.consultation_fee || doctor.consultationFee || 0}</span>
                             </div>
                             <div className="flex flex-col pt-2">
-                                <span className="text-gray-500 mb-1">Bio / About</span>
-                                <p className="font-medium text-gray-800 text-xs leading-relaxed">{doctor.bio || 'No bio provided.'}</p>
+                                <span className="text-foreground-muted mb-1">Bio / About</span>
+                                <p className="font-medium text-foreground text-xs leading-relaxed">{doctor.bio || 'No bio provided.'}</p>
                             </div>
                         </div>
                     </div>
 
                     {/* Automated Analysis */}
-                    <div className="bg-blue-50/80 p-6 rounded-xl border border-blue-100 h-fit">
-                        <h3 className="text-sm font-bold text-blue-600 uppercase mb-4 flex items-center gap-2">
+                    <div className="bg-accent-subtle/80 p-6 rounded-xl border border-accent/20 h-fit">
+                        <h3 className="text-sm font-bold text-accent uppercase mb-4 flex items-center gap-2">
                             <span>🤖</span> AI Analysis
                         </h3>
                         <div className="space-y-5">
                             <div className="flex justify-between items-center">
-                                <span className="text-gray-600 text-sm">Confidence Score</span>
-                                <span className={`text-3xl font-bold ${isHighConfidence ? 'text-green-600' : isMedConfidence ? 'text-yellow-600' : 'text-red-600'}`}>
+                                <span className="text-foreground-muted text-sm">Confidence Score</span>
+                                <span className={`text-3xl font-bold ${isHighConfidence ? 'text-success' : isMedConfidence ? 'text-warning' : 'text-error'}`}>
                                     {(confidenceScore * 100).toFixed(0)}%
                                 </span>
                             </div>
-                            <div className="w-full bg-white rounded-full h-3 overflow-hidden">
+                            <div className="w-full bg-surface-secondary rounded-full h-3 overflow-hidden">
                                 <div
-                                    className={`h-full ${isHighConfidence ? 'bg-green-500' : isMedConfidence ? 'bg-yellow-500' : 'bg-red-500'}`}
+                                    className={`h-full ${isHighConfidence ? 'bg-success' : isMedConfidence ? 'bg-warning' : 'bg-error'}`}
                                     style={{ width: `${confidenceScore * 100}%` }}
                                 ></div>
                             </div>
-                            <div className="text-sm space-y-3 bg-white/60 p-4 rounded-xl">
-                                <div className="flex justify-between items-center border-b border-gray-100 pb-2">
-                                    <span className="text-gray-500">PMDC Registry Match</span>
-                                    <span className={`font-bold ${isHighConfidence ? 'text-green-600' : 'text-yellow-600'}`}>
+                            <div className="text-sm space-y-3 bg-surface-secondary/60 p-4 rounded-xl">
+                                <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                                    <span className="text-foreground-muted">PMDC Registry Match</span>
+                                    <span className={`font-bold ${isHighConfidence ? 'text-success' : 'text-warning'}`}>
                                         {isHighConfidence ? 'Verified via DB' : 'Manual Review Required'}
                                     </span>
                                 </div>
                                 <div className="flex justify-between items-center">
-                                    <span className="text-gray-500">Required Documents</span>
-                                    <span className="font-bold text-gray-800">Complete</span>
+                                    <span className="text-foreground-muted">Required Documents</span>
+                                    <span className="font-bold text-foreground">Complete</span>
                                 </div>
                             </div>
                         </div>
@@ -160,9 +160,9 @@ const DoctorVerification = () => {
                 </div>
 
                 <div className="mb-8">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Review Notes / Rejection Reason</label>
+                    <label className="block text-sm font-medium text-foreground-muted mb-2">Review Notes / Rejection Reason</label>
                     <textarea
-                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all resize-none"
+                        className="w-full px-4 py-3 rounded-xl border border-white/[0.06] focus:border-accent focus:ring-2 focus:ring-accent/20 outline-none transition-all resize-none"
                         rows="4"
                         value={actionReason}
                         onChange={(e) => setActionReason(e.target.value)}
@@ -170,10 +170,10 @@ const DoctorVerification = () => {
                     ></textarea>
                 </div>
 
-                <div className="flex justify-end gap-4 border-t border-gray-100 pt-6">
+                <div className="flex justify-end gap-4 border-t border-white/5 pt-6">
                     <Button
                         variant="outline"
-                        className="text-red-600 border border-red-200 hover:bg-red-50 bg-white"
+                        className="text-error border border-error/20 hover:bg-error/10 bg-surface-secondary"
                         onClick={() => handleAction('rejected')}
                         disabled={processing}
                     >
@@ -182,7 +182,7 @@ const DoctorVerification = () => {
                     <Button
                         onClick={() => handleAction('approved')}
                         disabled={processing}
-                        className="bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-200"
+                        className="bg-medical hover:bg-emerald-700 text-white shadow-card"
                     >
                         {processing ? 'Processing...' : 'Approve & Verify Doctor'}
                     </Button>

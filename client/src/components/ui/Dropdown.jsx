@@ -30,12 +30,10 @@ const Dropdown = ({
 
     return (
         <div className="relative" ref={dropdownRef}>
-            {/* Trigger */}
             <div onClick={() => setIsOpen(!isOpen)}>
                 {trigger}
             </div>
 
-            {/* Dropdown Menu */}
             <AnimatePresence>
                 {isOpen && (
                     <motion.div
@@ -45,13 +43,13 @@ const Dropdown = ({
                         transition={{ duration: 0.2 }}
                         className={clsx(
                             'absolute mt-2 z-50',
-                            'bg-white/90 backdrop-blur-md rounded-xl shadow-glass',
-                            'border border-white/20 min-w-[200px]',
+                            'bg-surface-secondary/90 backdrop-blur-[8px] rounded-xl shadow-panel',
+                            'border border-white/[0.06] min-w-[200px]',
                             alignments[align],
                             className
                         )}
                     >
-                        <div className="py-2">
+                        <div className="py-1">
                             {children}
                         </div>
                     </motion.div>
@@ -67,12 +65,12 @@ export const DropdownItem = ({ onClick, children, icon, className = '' }) => {
             onClick={onClick}
             className={clsx(
                 'w-full px-4 py-2 text-left text-sm',
-                'hover:bg-primary-blue/10 transition-colors',
-                'flex items-center gap-3',
+                'hover:bg-accent-subtle transition-colors',
+                'flex items-center gap-3 text-foreground-muted hover:text-foreground',
                 className
             )}
         >
-            {icon && <span className="text-gray-500">{icon}</span>}
+            {icon && <span className="text-foreground-subtle">{icon}</span>}
             <span>{children}</span>
         </button>
     );

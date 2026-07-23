@@ -2,6 +2,7 @@ const { User, Doctor, Patient, Appointment, Payment, Notification, Scan, AIFeedb
 const { sendDoctorStatusNotification } = require('../utils/emailService');
 const { Op } = require('sequelize');
 
+
 // @desc    Get all users
 // @route   GET /api/admin/users
 // @access  Private/Admin
@@ -130,14 +131,16 @@ const verifyDoctor = async (req, res) => {
 // @access  Private/Admin
 const getAdminStats = async (req, res) => {
     try {
-        const totalUsers = await User.count();
-        const totalDoctors = await Doctor.count();
+        const totalUsers        = await User.count();
+        const totalDoctors      = await Doctor.count();
+        const totalPatients     = await Patient.count();
+        const totalScans        = await Scan.count();
         const pendingVerifications = await Doctor.count({ where: { verification_status: 'pending' } });
         const totalAppointments = await Appointment.count();
-        const revenueResult = await Payment.sum('amount', { where: { status: 'completed' } });
-        const revenue = revenueResult || 0;
+        const revenueResult     = await Payment.sum('amount', { where: { status: 'succeeded' } });
+        const revenue           = revenueResult || 0;
 
-        res.json({ totalUsers, totalDoctors, pendingVerifications, totalAppointments, revenue });
+        res.json({ totalUsers, totalDoctors, totalPatients, totalScans, pendingVerifications, totalAppointments, revenue });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Server error' });
@@ -149,17 +152,20 @@ const getAdminStats = async (req, res) => {
 // @access  Private/Admin
 const getAdminAnalytics = async (req, res) => {
     try {
-        const sixMonthsAgo = new Date();
-        sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+        // Use all-time data so charts always populate regardless of creation dates
+        const groupByMonth = [
+            [sequelize.fn('DATE_TRUNC', 'month', sequelize.col('createdAt')), 'month']
+        ];
+        const orderByMonth = [[sequelize.fn('DATE_TRUNC', 'month', sequelize.col('createdAt')), 'ASC']];
 
         const revenueRows = await Payment.findAll({
             attributes: [
                 [sequelize.fn('DATE_TRUNC', 'month', sequelize.col('createdAt')), 'month'],
                 [sequelize.fn('SUM', sequelize.col('amount')), 'total']
             ],
-            where: { status: 'completed', createdAt: { [Op.gte]: sixMonthsAgo } },
-            group: [sequelize.fn('DATE_TRUNC', 'month', sequelize.col('createdAt'))],
-            order: [[sequelize.fn('DATE_TRUNC', 'month', sequelize.col('createdAt')), 'ASC']],
+            where: { status: 'succeeded' },
+            group: groupByMonth,
+            order: orderByMonth,
             raw: true
         });
 
@@ -168,9 +174,8 @@ const getAdminAnalytics = async (req, res) => {
                 [sequelize.fn('DATE_TRUNC', 'month', sequelize.col('createdAt')), 'month'],
                 [sequelize.fn('COUNT', sequelize.col('id')), 'count']
             ],
-            where: { createdAt: { [Op.gte]: sixMonthsAgo } },
-            group: [sequelize.fn('DATE_TRUNC', 'month', sequelize.col('createdAt'))],
-            order: [[sequelize.fn('DATE_TRUNC', 'month', sequelize.col('createdAt')), 'ASC']],
+            group: groupByMonth,
+            order: orderByMonth,
             raw: true
         });
 
@@ -179,13 +184,22 @@ const getAdminAnalytics = async (req, res) => {
                 [sequelize.fn('DATE_TRUNC', 'month', sequelize.col('createdAt')), 'month'],
                 [sequelize.fn('COUNT', sequelize.col('id')), 'count']
             ],
-            where: { createdAt: { [Op.gte]: sixMonthsAgo } },
-            group: [sequelize.fn('DATE_TRUNC', 'month', sequelize.col('createdAt'))],
-            order: [[sequelize.fn('DATE_TRUNC', 'month', sequelize.col('createdAt')), 'ASC']],
+            group: groupByMonth,
+            order: orderByMonth,
             raw: true
         });
 
-        res.json({ revenue: revenueRows, patients: patientRows, doctors: doctorRows });
+        const scanRows = await Scan.findAll({
+            attributes: [
+                [sequelize.fn('DATE_TRUNC', 'month', sequelize.col('createdAt')), 'month'],
+                [sequelize.fn('COUNT', sequelize.col('id')), 'count']
+            ],
+            group: groupByMonth,
+            order: orderByMonth,
+            raw: true
+        });
+
+        res.json({ revenue: revenueRows, patients: patientRows, doctors: doctorRows, scans: scanRows });
     } catch (error) {
         console.error('Admin Analytics Error:', error);
         res.status(500).json({ message: 'Server error' });

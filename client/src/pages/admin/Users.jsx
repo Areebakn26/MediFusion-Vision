@@ -76,7 +76,7 @@ const Users = () => {
     return (
         <div className="space-y-8">
             <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                <h1 className="text-3xl font-bold text-accent">
                     User Management
                 </h1>
                 <div className="flex gap-3 w-full md:w-auto">
@@ -87,10 +87,10 @@ const Users = () => {
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="pl-10"
                         />
-                        <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                        <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-foreground-subtle" />
                     </div>
                     <select
-                        className="px-4 py-2 rounded-xl border border-gray-200 focus:border-blue-500 outline-none bg-white/50"
+                        className="px-4 py-2 rounded-xl border border-white/[0.06] focus:border-accent outline-none bg-surface-secondary/50"
                         value={roleFilter}
                         onChange={(e) => setRoleFilter(e.target.value)}
                     >
@@ -105,23 +105,23 @@ const Users = () => {
             <GlassCard className="overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full">
-                        <thead className="bg-gray-50/50 border-b border-gray-100">
+                        <thead className="bg-surface-secondary/50 border-b border-white/5">
                             <tr>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">User</th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Role</th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Joined</th>
-                                <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
+                                <th className="px-6 py-4 text-left text-xs font-semibold text-foreground-muted uppercase tracking-wider">User</th>
+                                <th className="px-6 py-4 text-left text-xs font-semibold text-foreground-muted uppercase tracking-wider">Role</th>
+                                <th className="px-6 py-4 text-left text-xs font-semibold text-foreground-muted uppercase tracking-wider">Status</th>
+                                <th className="px-6 py-4 text-left text-xs font-semibold text-foreground-muted uppercase tracking-wider">Joined</th>
+                                <th className="px-6 py-4 text-right text-xs font-semibold text-foreground-muted uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-100">
+                        <tbody className="divide-y divide-white/5">
                             {loading ? (
                                 <tr>
-                                    <td colSpan="5" className="px-6 py-8 text-center text-gray-500">Loading users...</td>
+                                    <td colSpan="5" className="px-6 py-8 text-center text-foreground-muted">Loading users...</td>
                                 </tr>
                             ) : filteredUsers.length === 0 ? (
                                 <tr>
-                                    <td colSpan="5" className="px-6 py-8 text-center text-gray-500">No users found.</td>
+                                    <td colSpan="5" className="px-6 py-8 text-center text-foreground-muted">No users found.</td>
                                 </tr>
                             ) : (
                                 filteredUsers.map((user, index) => {
@@ -132,16 +132,16 @@ const Users = () => {
                                             initial={{ opacity: 0, x: -20 }}
                                             animate={{ opacity: 1, x: 0 }}
                                             transition={{ delay: index * 0.05 }}
-                                            className="hover:bg-blue-50/30 transition-colors"
+                                            className="hover:bg-accent-subtle/30 transition-colors"
                                         >
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <div className="flex items-center">
-                                                    <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center text-blue-600 font-bold shadow-sm">
+                                                    <div className="h-10 w-10 rounded-full bg-accent-subtle flex items-center justify-center text-accent font-bold shadow-card">
                                                         {(user.name || '?').charAt(0)}
                                                     </div>
                                                     <div className="ml-4">
-                                                        <div className="text-sm font-bold text-gray-900">{user.name}</div>
-                                                        <div className="text-sm text-gray-500">{user.email}</div>
+                                                        <div className="text-sm font-bold text-foreground">{user.name}</div>
+                                                        <div className="text-sm text-foreground-muted">{user.email}</div>
                                                     </div>
                                                 </div>
                                             </td>
@@ -151,7 +151,7 @@ const Users = () => {
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 {getStatusBadge(status)}
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground-muted">
                                                 {new Date(user.createdAt).toLocaleDateString()}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -160,7 +160,7 @@ const Users = () => {
                                                         status === 'blocked' ? (
                                                             <button
                                                                 onClick={() => handleAction(user.id, 'unblock')}
-                                                                className="text-green-600 hover:text-green-900 p-2 hover:bg-green-50 rounded-lg transition-colors"
+                                                                className="text-success hover:text-success p-2 hover:bg-success/10 rounded-xl transition-colors"
                                                                 title="Unblock User"
                                                             >
                                                                 <FaUserShield />
@@ -168,7 +168,7 @@ const Users = () => {
                                                         ) : (
                                                             <button
                                                                 onClick={() => handleAction(user.id, 'block')}
-                                                                className="text-orange-600 hover:text-orange-900 p-2 hover:bg-orange-50 rounded-lg transition-colors"
+                                                                className="text-warning hover:text-warning p-2 hover:bg-warning/10 rounded-xl transition-colors"
                                                                 title="Block User"
                                                             >
                                                                 <FaBan />
@@ -178,7 +178,7 @@ const Users = () => {
                                                     {user.role !== 'admin' && (
                                                         <button
                                                             onClick={() => handleAction(user.id, 'delete')}
-                                                            className="text-red-600 hover:text-red-900 p-2 hover:bg-red-50 rounded-lg transition-colors"
+                                                            className="text-error hover:text-error p-2 hover:bg-error/10 rounded-xl transition-colors"
                                                             title="Delete User"
                                                         >
                                                             <FaTrash />

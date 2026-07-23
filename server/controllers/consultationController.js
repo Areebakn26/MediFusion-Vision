@@ -19,7 +19,8 @@ const audioUpload = multer({
     limits: { fileSize: 100 * 1024 * 1024 },
     fileFilter: (req, file, cb) => {
         const allowed = ['audio/webm', 'video/webm', 'audio/ogg', 'audio/wav', 'audio/mp4', 'audio/mpeg', 'audio/x-m4a'];
-        allowed.includes(file.mimetype) ? cb(null, true) : cb(new Error(`Unsupported audio: ${file.mimetype}`));
+        // Use startsWith to handle codec suffixes like 'audio/webm;codecs=opus'
+        allowed.some(a => file.mimetype.startsWith(a)) ? cb(null, true) : cb(new Error(`Unsupported audio: ${file.mimetype}`));
     }
 }).single('audio');
 

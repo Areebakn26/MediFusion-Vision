@@ -37,10 +37,11 @@ const transcribeAudio = async (audioFilePath) => {
     const transcription = await groq.audio.transcriptions.create({
         model: 'whisper-large-v3-turbo',
         file: fs.createReadStream(audioFilePath),
-        response_format: 'text'
+        // response_format defaults to 'json' → returns { text: "..." }
         // language left undefined → auto-detect handles mixed Urdu/English
     });
-    return transcription;
+    // Groq SDK may return a plain string (text mode) or object (json mode) — handle both
+    return typeof transcription === 'string' ? transcription : (transcription.text || '');
 };
 
 const generateConsultationNotes = async (transcript, patientContext) => {

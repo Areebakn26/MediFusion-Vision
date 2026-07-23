@@ -170,21 +170,21 @@ const DoctorProfileSettings = () => {
         switch (verificationStatus) {
             case 'approved':
                 return (
-                    <div className="flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 rounded-full">
+                    <div className="flex items-center gap-2 px-4 py-2 bg-success/10 text-success rounded-full">
                         <span className="text-lg">✅</span>
                         <span className="font-semibold">Verified Doctor</span>
                     </div>
                 );
             case 'rejected':
                 return (
-                    <div className="flex items-center gap-2 px-4 py-2 bg-red-100 text-red-700 rounded-full">
+                    <div className="flex items-center gap-2 px-4 py-2 bg-error/10 text-error rounded-full">
                         <span className="text-lg">❌</span>
                         <span className="font-semibold">Verification Rejected</span>
                     </div>
                 );
             default:
                 return (
-                    <div className="flex items-center gap-2 px-4 py-2 bg-yellow-100 text-yellow-700 rounded-full">
+                    <div className="flex items-center gap-2 px-4 py-2 bg-warning/10 text-warning rounded-full">
                         <span className="text-lg">⏳</span>
                         <span className="font-semibold">Pending Verification</span>
                     </div>
@@ -198,7 +198,7 @@ const DoctorProfileSettings = () => {
 
     return (
         <div 
-            className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50/30 p-6" 
+            className="min-h-screen bg-surface p-6" 
             style={{ 
                 pointerEvents: 'auto', 
                 position: 'relative', 

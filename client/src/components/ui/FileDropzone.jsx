@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next';
 const FileDropzone = ({
     onFileSelect,
     accept = { 'image/*': [] },
-    maxSize = 10485760, // 10MB
+    maxSize = 10485760,
     multiple = false,
     className = ''
 }) => {
@@ -33,30 +33,29 @@ const FileDropzone = ({
             whileTap={{ scale: 0.99 }}
             className={clsx(
                 'relative border-2 border-dashed rounded-2xl p-8',
-                'bg-white/50 backdrop-blur-sm transition-all duration-300',
+                'bg-surface-secondary/60 backdrop-blur-sm transition-all duration-300',
                 'cursor-pointer group',
-                isDragActive && !isDragReject && 'border-primary-blue bg-primary-blue/5 shadow-glow',
-                isDragReject && 'border-red-400 bg-red-50',
-                !isDragActive && 'border-gray-300 hover:border-primary-teal hover:bg-primary-teal/5',
+                isDragActive && !isDragReject && 'border-accent bg-accent-subtle shadow-card-hover',
+                isDragReject && 'border-error bg-error/10',
+                !isDragActive && 'border-white/[0.12] hover:border-accent/50 hover:bg-accent-subtle/30',
                 className
             )}
         >
             <input {...getInputProps()} />
 
             <div className="flex flex-col items-center justify-center text-center space-y-4">
-                {/* Upload Icon */}
                 <motion.div
                     animate={{ y: isDragActive ? -5 : 0 }}
                     transition={{ duration: 0.2 }}
                     className={clsx(
                         'p-4 rounded-full transition-colors',
-                        isDragActive ? 'bg-primary-blue/20' : 'bg-gray-100 group-hover:bg-primary-teal/20'
+                        isDragActive ? 'bg-accent-subtle' : 'bg-surface-tertiary group-hover:bg-accent-subtle/50'
                     )}
                 >
                     <svg
                         className={clsx(
                             'w-12 h-12 transition-colors',
-                            isDragActive ? 'text-primary-blue' : 'text-gray-400 group-hover:text-primary-teal'
+                            isDragActive ? 'text-accent' : 'text-foreground-subtle group-hover:text-accent'
                         )}
                         fill="none"
                         viewBox="0 0 24 24"
@@ -71,39 +70,36 @@ const FileDropzone = ({
                     </svg>
                 </motion.div>
 
-                {/* Text */}
                 <div>
                     {isDragActive ? (
-                        <p className="text-lg font-medium text-primary-blue">
+                        <p className="text-lg font-medium text-accent">
                             {multiple ? t('dropFilesHere_msg', 'Drop the files here...') : t('dropFileHere_msg', 'Drop the file here...')}
                         </p>
                     ) : (
                         <>
-                            <p className="text-lg font-medium text-gray-700">
+                            <p className="text-lg font-medium text-foreground">
                                 {multiple ? t('dragDropFiles_msg', 'Drag & drop files here') : t('dragDropFile_msg', 'Drag & drop a file here')}
                             </p>
-                            <p className="text-sm text-gray-500 mt-1">
+                            <p className="text-sm text-foreground-muted mt-1">
                                 {t('clickToBrowse_msg', 'or click to browse')}
                             </p>
                         </>
                     )}
                 </div>
 
-                {/* File info */}
-                <div className="text-xs text-gray-400">
+                <div className="text-xs text-foreground-subtle">
                     <p>{t('supportedFormats_msg', 'Supported formats:')} {Object.keys(accept).join(', ')}</p>
                     <p>{t('maxSize_msg', 'Max size:')} {(maxSize / 1048576).toFixed(0)}MB</p>
                 </div>
             </div>
 
-            {/* Animated border glow */}
             {isDragActive && (
                 <motion.div
                     className="absolute inset-0 rounded-2xl"
                     animate={{ opacity: [0.5, 1, 0.5] }}
                     transition={{ duration: 1.5, repeat: Infinity }}
                     style={{
-                        boxShadow: '0 0 20px rgba(80, 201, 206, 0.5)',
+                        boxShadow: '0 0 20px rgba(91, 106, 255, 0.3)',
                     }}
                 />
             )}

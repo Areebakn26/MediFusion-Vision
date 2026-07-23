@@ -36,6 +36,7 @@ const Diagnostics = () => {
     const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
     const [correctedDiagnosis, setCorrectedDiagnosis] = useState('');
     const [feedbackNotes, setFeedbackNotes] = useState('');
+    const [finalizedReport, setFinalizedReport] = useState(null);
 
     useEffect(() => { fetchScans(); }, []);
 
@@ -53,14 +54,30 @@ const Diagnostics = () => {
 
     const handleSelectScan = (scan) => {
         setSelectedScan(scan);
-        setAiAnalysis(null);
-        setDiagnosis('');
-        setDoctorNotes('');
-        setPatientFriendlySummary('');
-        setRecommendations('');
         setShowHeatmap('original');
         setActiveTab('findings');
-        setReportSubmitted(false);
+        setFinalizedReport(null);
+
+        // Pre-load existing AI analysis so the report form shows without re-running AI
+        const existingAI = scan.aiAnalysis || scan.ai_prediction;
+        setAiAnalysis(existingAI || null);
+
+        // Check if a finalized report already exists for this scan
+        const existingReport = scan.Reports?.[0] || scan.Report;
+        if (existingReport?.finalized) {
+            setReportSubmitted(true);
+            setFinalizedReport(existingReport);
+            setDiagnosis(existingReport.diagnosis || '');
+            setDoctorNotes(existingReport.doctor_notes || '');
+            setPatientFriendlySummary(existingReport.report_patient_friendly || '');
+            setRecommendations(existingReport.recommendations || '');
+        } else {
+            setReportSubmitted(false);
+            setDiagnosis('');
+            setDoctorNotes('');
+            setPatientFriendlySummary('');
+            setRecommendations('');
+        }
     };
 
     // ── Run AI Analysis — retinal OR brain ──
@@ -111,7 +128,7 @@ const Diagnostics = () => {
         if (!selectedScan) return;
         setFinalizing(true);
         try {
-            await api.post(`/scans/${selectedScan.id || selectedScan._id}/report`, {
+            const { data: savedReport } = await api.post(`/scans/${selectedScan.id || selectedScan._id}/report`, {
                 diagnosis,
                 notes: doctorNotes,
                 report_patient_friendly: patientFriendlySummary,
@@ -120,10 +137,7 @@ const Diagnostics = () => {
             });
             toast.success('Report finalized! Patient notified.');
             setReportSubmitted(true);
-            setSelectedScan(null);
-            setAiAnalysis(null);
-            setDiagnosis('');
-            setDoctorNotes('');
+            setFinalizedReport(savedReport);
             fetchScans();
         } catch (error) {
             console.error("Error creating report", error);
@@ -190,7 +204,7 @@ const Diagnostics = () => {
 
     // ── PDF Download ──
     const handleDownloadPDF = async () => {
-        if (!selectedScan || !aiAnalysis) return;
+        if (!selectedScan) return;
         setIsGeneratingPdf(true);
         try {
             const response = await api.post(
@@ -219,12 +233,12 @@ const Diagnostics = () => {
 
     const getScanIcon = (type) => {
         const icons = {
-            mri_brain: <FaBrain className="text-purple-500" />,
-            retinal: <FaEye className="text-blue-500" />,
-            xray: <FaLungs className="text-teal-500" />,
-            ct_scan: <FaXRay className="text-indigo-500" />
+            mri_brain: <FaBrain className="text-accent" />,
+            retinal: <FaEye className="text-accent" />,
+            xray: <FaLungs className="text-accent" />,
+            ct_scan: <FaXRay className="text-accent" />
         };
-        return icons[type] || <FaMicroscope className="text-gray-500" />;
+        return icons[type] || <FaMicroscope className="text-foreground-muted" />;
     };
 
     const getStatusBadge = (status) => {
@@ -233,14 +247,14 @@ const Diagnostics = () => {
     };
 
     const getConfidenceColor = (conf) => {
-        if (conf >= 80) return 'text-green-600';
-        if (conf >= 60) return 'text-yellow-600';
-        return 'text-red-600';
+        if (conf >= 80) return 'text-success';
+        if (conf >= 60) return 'text-warning';
+        return 'text-error';
     };
 
     const getPriorityColor = (priority) => {
-        const map = { critical: 'bg-red-100 text-red-700 border-red-200', high: 'bg-orange-100 text-orange-700 border-orange-200', medium: 'bg-yellow-100 text-yellow-700 border-yellow-200', low: 'bg-green-100 text-green-700 border-green-200' };
-        return map[priority] || 'bg-gray-100 text-gray-700 border-gray-200';
+        const map = { critical: 'bg-error/10 text-error border-error/20', high: 'bg-warning/10 text-warning border-warning/20', medium: 'bg-warning/10 text-warning border-warning/20', low: 'bg-success/10 text-success border-success/20' };
+        return map[priority] || 'bg-surface-tertiary text-foreground-muted border-white/[0.06]';
     };
 
     // ── Diagnosis dropdown options based on scan type ──
@@ -301,27 +315,27 @@ const Diagnostics = () => {
                 {/* Tumor + Alzheimer Cards side by side */}
                 <div className="grid grid-cols-2 gap-3 mb-4">
                     {/* Tumor Card */}
-                    <div className={`rounded-xl p-4 border ${tumor?.is_detected ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
+                    <div className={`rounded-xl p-4 border ${tumor?.is_detected ? 'bg-error/10 border-error/20' : 'bg-success/10 border-success/20'}`}>
                         <div className="flex items-center gap-2 mb-2">
-                            <FaBrain className={tumor?.is_detected ? 'text-red-500' : 'text-green-500'} />
-                            <span className="font-bold text-sm text-gray-800">Tumor Analysis</span>
+                            <FaBrain className={tumor?.is_detected ? 'text-error' : 'text-success'} />
+                            <span className="font-bold text-sm text-foreground">Tumor Analysis</span>
                         </div>
-                        <p className={`text-lg font-bold capitalize ${tumor?.is_detected ? 'text-red-600' : 'text-green-600'}`}>
+                        <p className={`text-lg font-bold capitalize ${tumor?.is_detected ? 'text-error' : 'text-success'}`}>
                             {tumor?.prediction?.replace(/_/g, ' ')}
                         </p>
                         <p className={`text-sm font-medium ${getConfidenceColor(tumor?.confidence)}`}>
                             {tumor?.confidence?.toFixed(1)}% confidence
                         </p>
-                        <div className="mt-2 w-full bg-gray-200 rounded-full h-1.5">
+                        <div className="mt-2 w-full bg-surface-secondary rounded-full h-1.5">
                             <div
-                                className={`h-1.5 rounded-full ${tumor?.is_detected ? 'bg-red-500' : 'bg-green-500'}`}
+                                className={`h-1.5 rounded-full ${tumor?.is_detected ? 'bg-error' : 'bg-success/100'}`}
                                 style={{ width: `${tumor?.confidence}%` }}
                             />
                         </div>
                         {tumor?.gradcam_available && (
                             <button
                                 onClick={() => setShowHeatmap(showHeatmap === 'tumor' ? 'original' : 'tumor')}
-                                className={`mt-2 text-xs px-2 py-1 rounded-full border transition-all ${showHeatmap === 'tumor' ? 'bg-red-500 text-white border-red-500' : 'bg-white text-red-600 border-red-300 hover:bg-red-50'}`}
+                                className={`mt-2 text-xs px-2 py-1 rounded-full border transition-all ${showHeatmap === 'tumor' ? 'bg-error text-white border-red-500' : 'bg-surface-secondary text-error border-error/20 hover:bg-error/10'}`}
                             >
                                 🔥 {showHeatmap === 'tumor' ? 'Hide' : 'Show'} GradCAM
                             </button>
@@ -329,24 +343,24 @@ const Diagnostics = () => {
                     </div>
 
                     {/* Alzheimer Card */}
-                    <div className={`rounded-xl p-4 border ${alzheimer?.is_detected && alzheimer?.is_applicable ? 'bg-orange-50 border-orange-200' : 'bg-green-50 border-green-200'}`}>
+                    <div className={`rounded-xl p-4 border ${alzheimer?.is_detected && alzheimer?.is_applicable ? 'bg-warning/10 border-warning/20' : 'bg-success/10 border-success/20'}`}>
                         <div className="flex items-center gap-2 mb-2">
-                            <FaBrain className={alzheimer?.is_detected ? 'text-orange-500' : 'text-green-500'} />
-                            <span className="font-bold text-sm text-gray-800">Alzheimer's</span>
+                            <FaBrain className={alzheimer?.is_detected ? 'text-warning' : 'text-success'} />
+                            <span className="font-bold text-sm text-foreground">Alzheimer's</span>
                         </div>
                         {!alzheimer?.is_applicable ? (
-                            <p className="text-sm text-yellow-700 font-medium">Not Applicable</p>
+                            <p className="text-sm text-warning font-medium">Not Applicable</p>
                         ) : (
                             <>
-                                <p className={`text-sm font-bold capitalize ${alzheimer?.is_detected ? 'text-orange-600' : 'text-green-600'}`}>
+                                <p className={`text-sm font-bold capitalize ${alzheimer?.is_detected ? 'text-warning' : 'text-success'}`}>
                                     {alzheimer?.prediction?.replace(/([A-Z])/g, ' $1').trim()}
                                 </p>
                                 <p className={`text-sm font-medium ${getConfidenceColor(alzheimer?.confidence)}`}>
                                     {alzheimer?.confidence?.toFixed(1)}% confidence
                                 </p>
-                                <div className="mt-2 w-full bg-gray-200 rounded-full h-1.5">
+                                <div className="mt-2 w-full bg-surface-secondary rounded-full h-1.5">
                                     <div
-                                        className={`h-1.5 rounded-full ${alzheimer?.is_detected ? 'bg-orange-500' : 'bg-green-500'}`}
+                                        className={`h-1.5 rounded-full ${alzheimer?.is_detected ? 'bg-warning/100' : 'bg-success/100'}`}
                                         style={{ width: `${alzheimer?.confidence}%` }}
                                     />
                                 </div>
@@ -355,7 +369,7 @@ const Diagnostics = () => {
                         {alzheimer?.gradcam_available && (
                             <button
                                 onClick={() => setShowHeatmap(showHeatmap === 'alz' ? 'original' : 'alz')}
-                                className={`mt-2 text-xs px-2 py-1 rounded-full border transition-all ${showHeatmap === 'alz' ? 'bg-orange-500 text-white border-orange-500' : 'bg-white text-orange-600 border-orange-300 hover:bg-orange-50'}`}
+                                className={`mt-2 text-xs px-2 py-1 rounded-full border transition-all ${showHeatmap === 'alz' ? 'bg-warning/100 text-white border-orange-500' : 'bg-surface-secondary text-warning border-orange-300 hover:bg-warning/10'}`}
                             >
                                 🔥 {showHeatmap === 'alz' ? 'Hide' : 'Show'} GradCAM
                             </button>
@@ -364,15 +378,15 @@ const Diagnostics = () => {
                 </div>
 
                 {/* Tabs — Findings / Probabilities */}
-                <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
-                    <div className="flex border-b border-gray-100">
+                <div className="bg-surface-secondary rounded-xl border border-white/5 overflow-hidden">
+                    <div className="flex border-b border-white/5">
                         {['findings', 'probabilities'].map((tab) => (
                             <button
                                 key={tab}
                                 onClick={() => setActiveTab(tab)}
                                 className={`flex-1 py-3 text-sm font-medium transition-all capitalize ${activeTab === tab
-                                    ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
-                                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                                    ? 'text-accent border-b-2 border-blue-600 bg-accent-subtle'
+                                    : 'text-foreground-muted hover:text-foreground-muted hover:bg-surface-secondary/60'
                                     }`}
                             >
                                 {tab}
@@ -384,11 +398,11 @@ const Diagnostics = () => {
                             {activeTab === 'findings' && (
                                 <motion.div key="brain-findings" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-3">
                                     {tumor?.clinical_finding && (
-                                        <div className="p-3 bg-red-50 rounded-lg border border-red-100">
-                                            <strong className="text-red-700 text-sm">🧠 Tumor Finding:</strong>
-                                            <p className="mt-1 text-sm text-gray-700">{tumor.clinical_finding}</p>
+                                        <div className="p-3 bg-error/10 rounded-xl border border-error/20">
+                                            <strong className="text-error text-sm">🧠 Tumor Finding:</strong>
+                                            <p className="mt-1 text-sm text-foreground-muted">{tumor.clinical_finding}</p>
                                             {tumor?.xai_reasoning && (
-                                                <div className="mt-2 text-xs text-gray-500 space-y-0.5">
+                                                <div className="mt-2 text-xs text-foreground-muted space-y-0.5">
                                                     <p>📍 Primary region: <span className="font-medium">{tumor.xai_reasoning.primary_region}</span></p>
                                                     <p>📍 Secondary: <span className="font-medium">{tumor.xai_reasoning.secondary_region}</span></p>
                                                     <p>⚡ Activation: <span className="font-medium">{tumor.xai_reasoning.activation_pattern}</span> ({tumor.xai_reasoning.signal_intensity})</p>
@@ -398,11 +412,11 @@ const Diagnostics = () => {
                                         </div>
                                     )}
                                     {alzheimer?.clinical_finding && alzheimer?.is_applicable && (
-                                        <div className="p-3 bg-orange-50 rounded-lg border border-orange-100">
-                                            <strong className="text-orange-700 text-sm">🧬 Alzheimer's Finding:</strong>
-                                            <p className="mt-1 text-sm text-gray-700">{alzheimer.clinical_finding}</p>
+                                        <div className="p-3 bg-warning/10 rounded-xl border border-warning/20">
+                                            <strong className="text-warning text-sm">🧬 Alzheimer's Finding:</strong>
+                                            <p className="mt-1 text-sm text-foreground-muted">{alzheimer.clinical_finding}</p>
                                             {alzheimer?.xai_reasoning && (
-                                                <div className="mt-2 text-xs text-gray-500 space-y-0.5">
+                                                <div className="mt-2 text-xs text-foreground-muted space-y-0.5">
                                                     <p>📍 Primary region: <span className="font-medium">{alzheimer.xai_reasoning.primary_region}</span></p>
                                                     <p>📍 Secondary: <span className="font-medium">{alzheimer.xai_reasoning.secondary_region}</span></p>
                                                     <p>⚡ Activation: <span className="font-medium">{alzheimer.xai_reasoning.activation_pattern}</span> ({alzheimer.xai_reasoning.signal_intensity})</p>
@@ -411,10 +425,10 @@ const Diagnostics = () => {
                                             )}
                                         </div>
                                     )}
-                                    <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-100">
+                                    <div className="p-3 bg-warning/10 rounded-xl border border-warning/20">
                                         <div className="flex items-start gap-2">
-                                            <FaExclamationTriangle className="text-yellow-600 mt-0.5 shrink-0" />
-                                            <p className="text-xs text-yellow-700">AI analysis is for assistance only. Final diagnosis by qualified professional required.</p>
+                                            <FaExclamationTriangle className="text-warning mt-0.5 shrink-0" />
+                                            <p className="text-xs text-warning">AI analysis is for assistance only. Final diagnosis by qualified professional required.</p>
                                         </div>
                                     </div>
                                 </motion.div>
@@ -423,14 +437,14 @@ const Diagnostics = () => {
                             {activeTab === 'probabilities' && (
                                 <motion.div key="brain-probs" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-4">
                                     <div>
-                                        <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Tumor Probabilities</p>
+                                        <p className="text-xs font-semibold text-foreground-muted uppercase mb-2">Tumor Probabilities</p>
                                         {tumor?.all_probabilities && Object.entries(tumor.all_probabilities)
                                             .sort((a, b) => b[1] - a[1])
                                             .map(([cls, prob], idx) => (
                                                 <div key={idx} className="flex items-center justify-between mb-2">
-                                                    <span className="text-xs text-gray-700 capitalize w-32">{cls.replace(/_/g, ' ')}</span>
+                                                    <span className="text-xs text-foreground-muted capitalize w-32">{cls.replace(/_/g, ' ')}</span>
                                                     <div className="flex items-center gap-2 flex-1">
-                                                        <div className="flex-1 bg-gray-200 rounded-full h-1.5">
+                                                        <div className="flex-1 bg-surface-secondary rounded-full h-1.5">
                                                             <motion.div
                                                                 initial={{ width: 0 }}
                                                                 animate={{ width: `${prob}%` }}
@@ -438,21 +452,21 @@ const Diagnostics = () => {
                                                                 className="bg-red-400 h-1.5 rounded-full"
                                                             />
                                                         </div>
-                                                        <span className="text-xs text-gray-500 w-10 text-right">{prob.toFixed(1)}%</span>
+                                                        <span className="text-xs text-foreground-muted w-10 text-right">{prob.toFixed(1)}%</span>
                                                     </div>
                                                 </div>
                                             ))
                                         }
                                     </div>
                                     <div>
-                                        <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Alzheimer's Probabilities</p>
+                                        <p className="text-xs font-semibold text-foreground-muted uppercase mb-2">Alzheimer's Probabilities</p>
                                         {alzheimer?.all_probabilities && Object.entries(alzheimer.all_probabilities)
                                             .sort((a, b) => b[1] - a[1])
                                             .map(([cls, prob], idx) => (
                                                 <div key={idx} className="flex items-center justify-between mb-2">
-                                                    <span className="text-xs text-gray-700 w-32">{cls.replace(/([A-Z])/g, ' $1').trim()}</span>
+                                                    <span className="text-xs text-foreground-muted w-32">{cls.replace(/([A-Z])/g, ' $1').trim()}</span>
                                                     <div className="flex items-center gap-2 flex-1">
-                                                        <div className="flex-1 bg-gray-200 rounded-full h-1.5">
+                                                        <div className="flex-1 bg-surface-secondary rounded-full h-1.5">
                                                             <motion.div
                                                                 initial={{ width: 0 }}
                                                                 animate={{ width: `${prob}%` }}
@@ -460,7 +474,7 @@ const Diagnostics = () => {
                                                                 className="bg-orange-400 h-1.5 rounded-full"
                                                             />
                                                         </div>
-                                                        <span className="text-xs text-gray-500 w-10 text-right">{prob.toFixed(1)}%</span>
+                                                        <span className="text-xs text-foreground-muted w-10 text-right">{prob.toFixed(1)}%</span>
                                                     </div>
                                                 </div>
                                             ))
@@ -481,21 +495,21 @@ const Diagnostics = () => {
     const renderRetinalResults = () => (
         <>
             {/* Primary Prediction */}
-            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-100">
+            <div className="bg-gradient-to-br from-accent/10 to-accent/10 rounded-xl p-6 border border-accent/20">
                 <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-3">
-                        <div className="p-2 bg-blue-600 rounded-lg text-white"><FaRobot /></div>
+                        <div className="p-2 bg-accent rounded-xl text-white"><FaRobot /></div>
                         <div>
-                            <h3 className="font-bold text-gray-800">AI Prediction</h3>
-                            <p className="text-xs text-gray-500">EfficientNetB3 — GradCAM</p>
+                            <h3 className="font-bold text-foreground">AI Prediction</h3>
+                            <p className="text-xs text-foreground-muted">EfficientNetB3 — GradCAM</p>
                         </div>
                     </div>
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${getConfidenceColor(aiAnalysis.prediction?.confidence)} bg-white border`}>
+                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${getConfidenceColor(aiAnalysis.prediction?.confidence)} bg-surface-secondary border`}>
                         {aiAnalysis.explanation?.confidence_text}
                     </span>
                 </div>
-                <div className="text-center py-4 bg-white/60 rounded-xl mb-4">
-                    <p className="text-2xl font-bold text-gray-800 capitalize">
+                <div className="text-center py-4 bg-surface-secondary/60 rounded-xl mb-4">
+                    <p className="text-2xl font-bold text-foreground capitalize">
                         {aiAnalysis.prediction?.class_name?.replace(/_/g, ' ')}
                     </p>
                     <p className={`text-lg font-semibold ${getConfidenceColor(aiAnalysis.prediction?.confidence)}`}>
@@ -503,32 +517,32 @@ const Diagnostics = () => {
                     </p>
                 </div>
                 <div className="mb-4">
-                    <div className="flex justify-between text-xs text-gray-500 mb-1">
+                    <div className="flex justify-between text-xs text-foreground-muted mb-1">
                         <span>Confidence</span>
                         <span>{aiAnalysis.prediction?.confidence?.toFixed(0)}%</span>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                    <div className="w-full bg-surface-secondary rounded-full h-2 overflow-hidden">
                         <motion.div
                             initial={{ width: 0 }}
                             animate={{ width: `${aiAnalysis.prediction?.confidence}%` }}
                             transition={{ duration: 1, ease: 'easeOut' }}
-                            className={`h-full rounded-full ${aiAnalysis.prediction?.confidence >= 80 ? 'bg-green-500' : aiAnalysis.prediction?.confidence >= 60 ? 'bg-yellow-500' : 'bg-red-500'}`}
+                            className={`h-full rounded-full ${aiAnalysis.prediction?.confidence >= 80 ? 'bg-success/100' : aiAnalysis.prediction?.confidence >= 60 ? 'bg-warning' : 'bg-error'}`}
                         />
                     </div>
                 </div>
                 {aiAnalysis.explanation?.clinical_note && (
-                    <div className="text-sm text-blue-700 bg-blue-100 rounded-lg p-3">
+                    <div className="text-sm text-accent bg-accent-subtle rounded-xl p-3">
                         <strong>Clinical Note:</strong> {aiAnalysis.explanation.clinical_note}
                     </div>
                 )}
             </div>
 
             {/* Tabs */}
-            <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
-                <div className="flex border-b border-gray-100">
+            <div className="bg-surface-secondary rounded-xl border border-white/5 overflow-hidden">
+                <div className="flex border-b border-white/5">
                     {['findings', 'regions', 'probabilities'].map((tab) => (
                         <button key={tab} onClick={() => setActiveTab(tab)}
-                            className={`flex-1 py-3 text-sm font-medium transition-all capitalize ${activeTab === tab ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}>
+                            className={`flex-1 py-3 text-sm font-medium transition-all capitalize ${activeTab === tab ? 'text-accent border-b-2 border-blue-600 bg-accent-subtle' : 'text-foreground-muted hover:text-foreground-muted hover:bg-surface-secondary/60'}`}>
                             {tab}
                         </button>
                     ))}
@@ -537,21 +551,21 @@ const Diagnostics = () => {
                     <AnimatePresence mode="wait">
                         {activeTab === 'findings' && (
                             <motion.div key="findings" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-                                <div className="space-y-3 text-sm text-gray-700">
+                                <div className="space-y-3 text-sm text-foreground-muted">
                                     {aiAnalysis.explanation?.what_model_sees && (
-                                        <div className="p-3 bg-blue-50 rounded-lg"><strong>What model sees:</strong><p className="mt-1">{aiAnalysis.explanation.what_model_sees}</p></div>
+                                        <div className="p-3 bg-accent-subtle rounded-xl"><strong>What model sees:</strong><p className="mt-1">{aiAnalysis.explanation.what_model_sees}</p></div>
                                     )}
                                     {aiAnalysis.explanation?.why_prediction && (
-                                        <div className="p-3 bg-green-50 rounded-lg"><strong>Why this prediction:</strong><p className="mt-1">{aiAnalysis.explanation.why_prediction}</p></div>
+                                        <div className="p-3 bg-success/10 rounded-xl"><strong>Why this prediction:</strong><p className="mt-1">{aiAnalysis.explanation.why_prediction}</p></div>
                                     )}
                                     {aiAnalysis.explanation?.validity_check && (
-                                        <div className="p-3 bg-yellow-50 rounded-lg"><strong>Validity:</strong><p className="mt-1">{aiAnalysis.explanation.validity_check}</p></div>
+                                        <div className="p-3 bg-warning/10 rounded-xl"><strong>Validity:</strong><p className="mt-1">{aiAnalysis.explanation.validity_check}</p></div>
                                     )}
                                 </div>
-                                <div className="mt-3 p-3 bg-yellow-50 rounded-lg border border-yellow-100">
+                                <div className="mt-3 p-3 bg-warning/10 rounded-xl border border-warning/20">
                                     <div className="flex items-start gap-2">
-                                        <FaExclamationTriangle className="text-yellow-600 mt-0.5" />
-                                        <p className="text-xs text-yellow-700">AI analysis is for assistance only. Final diagnosis by qualified professional required.</p>
+                                        <FaExclamationTriangle className="text-warning mt-0.5" />
+                                        <p className="text-xs text-warning">AI analysis is for assistance only. Final diagnosis by qualified professional required.</p>
                                     </div>
                                 </div>
                             </motion.div>
@@ -559,16 +573,16 @@ const Diagnostics = () => {
                         {activeTab === 'regions' && (
                             <motion.div key="regions" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-2">
                                 {aiAnalysis.regions?.map((region, idx) => (
-                                    <div key={idx} className="flex items-center justify-between p-2 rounded-lg bg-gray-50">
+                                    <div key={idx} className="flex items-center justify-between p-2 rounded-xl bg-surface-secondary/60">
                                         <div className="flex items-center gap-2">
-                                            <span className={`w-2 h-2 rounded-full ${region.is_expected ? 'bg-red-500' : 'bg-gray-300'}`}></span>
-                                            <span className="text-sm font-medium text-gray-700">{region.label}</span>
+                                            <span className={`w-2 h-2 rounded-full ${region.is_expected ? 'bg-error' : 'bg-surface-tertiary'}`}></span>
+                                            <span className="text-sm font-medium text-foreground-muted">{region.label}</span>
                                         </div>
                                         <div className="flex items-center gap-3">
-                                            <div className="w-20 bg-gray-200 rounded-full h-2">
+                                            <div className="w-20 bg-surface-secondary rounded-full h-2">
                                                 <div className={`h-2 rounded-full ${region.is_expected ? 'bg-red-400' : 'bg-blue-400'}`} style={{ width: `${Math.min(region.score * 100 * 3, 100)}%` }}></div>
                                             </div>
-                                            <span className="text-xs text-gray-500 w-16 text-right">{(region.coverage_pct).toFixed(0)}% active</span>
+                                            <span className="text-xs text-foreground-muted w-16 text-right">{(region.coverage_pct).toFixed(0)}% active</span>
                                         </div>
                                     </div>
                                 ))}
@@ -580,12 +594,12 @@ const Diagnostics = () => {
                                     .sort((a, b) => b[1] - a[1])
                                     .map(([cls, prob], idx) => (
                                         <div key={idx} className="flex items-center justify-between">
-                                            <span className="text-sm text-gray-700 capitalize w-40">{cls.replace(/_/g, ' ')}</span>
+                                            <span className="text-sm text-foreground-muted capitalize w-40">{cls.replace(/_/g, ' ')}</span>
                                             <div className="flex items-center gap-2 flex-1">
-                                                <div className="flex-1 bg-gray-200 rounded-full h-2">
-                                                    <motion.div initial={{ width: 0 }} animate={{ width: `${prob}%` }} transition={{ duration: 0.8, delay: idx * 0.1 }} className="bg-blue-500 h-2 rounded-full" />
+                                                <div className="flex-1 bg-surface-secondary rounded-full h-2">
+                                                    <motion.div initial={{ width: 0 }} animate={{ width: `${prob}%` }} transition={{ duration: 0.8, delay: idx * 0.1 }} className="bg-accent-subtle0 h-2 rounded-full" />
                                                 </div>
-                                                <span className="text-xs text-gray-500 w-12 text-right">{prob.toFixed(1)}%</span>
+                                                <span className="text-xs text-foreground-muted w-12 text-right">{prob.toFixed(1)}%</span>
                                             </div>
                                         </div>
                                     ))
@@ -607,12 +621,12 @@ const Diagnostics = () => {
             {/* ── Scans Sidebar ── */}
             <div className="w-full md:w-80 flex flex-col">
                 <GlassCard className="h-full flex flex-col overflow-hidden">
-                    <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-purple-50">
+                    <div className="p-6 border-b border-white/5 bg-gradient-to-r from-accent/10 to-accent/10">
                         <div className="flex items-center gap-3 mb-2">
-                            <div className="p-2 bg-blue-500 rounded-lg text-white"><FaRobot /></div>
+                            <div className="p-2 bg-accent-subtle0 rounded-xl text-white"><FaRobot /></div>
                             <div>
-                                <h2 className="text-xl font-bold text-gray-800">AI Diagnostics</h2>
-                                <p className="text-sm text-gray-500">
+                                <h2 className="text-xl font-bold text-foreground">AI Diagnostics</h2>
+                                <p className="text-sm text-foreground-muted">
                                     {scans.filter(s => s.status === 'pending').length} pending review
                                 </p>
                             </div>
@@ -620,11 +634,11 @@ const Diagnostics = () => {
                     </div>
                     <div className="flex-1 overflow-y-auto p-4 space-y-3">
                         {loading ? (
-                            <div className="text-center py-8 text-gray-500">
+                            <div className="text-center py-8 text-foreground-muted">
                                 <FaSpinner className="animate-spin text-2xl mx-auto mb-2" />Loading scans...
                             </div>
                         ) : scans.length === 0 ? (
-                            <div className="text-center py-8 text-gray-500">
+                            <div className="text-center py-8 text-foreground-muted">
                                 <FaMicroscope className="text-4xl mx-auto mb-2 opacity-50" />
                                 <p>No pending scans.</p>
                             </div>
@@ -637,25 +651,25 @@ const Diagnostics = () => {
                                     transition={{ delay: index * 0.05 }}
                                     onClick={() => handleSelectScan(scan)}
                                     className={`p-4 rounded-xl cursor-pointer border-2 transition-all ${(selectedScan?.id || selectedScan?._id) === (scan.id || scan._id)
-                                        ? 'bg-blue-50 border-blue-300 shadow-md'
-                                        : 'bg-white/50 border-transparent hover:bg-white hover:border-gray-200 hover:shadow-sm'
+                                        ? 'bg-accent-subtle border-accent/20 shadow-card'
+                                        : 'bg-surface-secondary/50 border-transparent hover:bg-surface-secondary hover:border-white/[0.06] hover:shadow-card'
                                         }`}
                                 >
                                     <div className="flex items-start gap-3">
-                                        <div className="p-2 bg-gray-100 rounded-lg text-xl">
+                                        <div className="p-2 bg-surface-tertiary rounded-xl text-xl">
                                             {getScanIcon(scan.scanType || scan.scan_type)}
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <div className="flex justify-between items-start mb-1">
-                                                <span className="font-semibold text-gray-800 capitalize">
+                                                <span className="font-semibold text-foreground capitalize">
                                                     {(scan.scanType || scan.scan_type || 'Unknown').replace('_', ' ')}
                                                 </span>
                                                 {getStatusBadge(scan.status)}
                                             </div>
-                                            <p className="text-sm text-gray-600 truncate">
+                                            <p className="text-sm text-foreground-muted truncate">
                                                 {scan.Patient?.User?.name || 'Unknown Patient'}
                                             </p>
-                                            <p className="text-xs text-gray-400 mt-1">
+                                            <p className="text-xs text-foreground-subtle mt-1">
                                                 {new Date(scan.createdAt).toLocaleDateString()}
                                             </p>
                                         </div>
@@ -676,24 +690,28 @@ const Diagnostics = () => {
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -20 }}
-                            className="h-full flex flex-col"
+                            className="h-full flex flex-col min-h-0"
                         >
-                            <GlassCard className="h-full flex flex-col overflow-hidden">
+                            <div className="h-full flex flex-col overflow-hidden rounded-2xl bg-surface-secondary border border-white/[0.06] shadow-card">
+                                <div className="flex-1 flex flex-col min-h-0">
+                                    <div className="relative overflow-hidden rounded-2xl flex-1 flex flex-col min-h-0">
+                                        <div className="absolute inset-0 bg-gradient-to-b from-white/45 via-white/15 to-white/45 pointer-events-none" />
+                                        <div className="relative flex-1 flex flex-col min-h-0 m-[1px] bg-white/[0.01] backdrop-blur-[4px] shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]">
 
                                 {/* Header */}
-                                <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-white/60">
+                                <div className="p-6 border-b border-white/5 flex justify-between items-center bg-surface-secondary/60 shrink-0">
                                     <div className="flex items-center gap-4">
-                                        <div className="p-3 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl text-white text-2xl">
+                                        <div className="p-3 bg-gradient-to-br from-accent to-accent rounded-xl text-white text-2xl">
                                             {getScanIcon(selectedScan.scanType || selectedScan.scan_type)}
                                         </div>
                                         <div>
-                                            <h2 className="text-2xl font-bold text-gray-800 capitalize">
+                                            <h2 className="text-2xl font-bold text-foreground capitalize">
                                                 {(selectedScan.scanType || selectedScan.scan_type || 'Medical').replace('_', ' ')} Analysis
                                             </h2>
-                                            <p className="text-gray-500">
+                                            <p className="text-foreground-muted">
                                                 Patient: <span className="font-medium">{selectedScan.Patient?.User?.name || 'Unknown'}</span>
                                                 {isBrainScan(selectedScan) && (
-                                                    <span className="ml-2 text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">
+                                                    <span className="ml-2 text-xs bg-accent-subtle text-accent px-2 py-0.5 rounded-full">
                                                         🧠 Brain MRI — Tumor + Alzheimer's
                                                     </span>
                                                 )}
@@ -701,12 +719,12 @@ const Diagnostics = () => {
                                         </div>
                                     </div>
                                     <div className="flex gap-2 flex-wrap justify-end">
-                                        <Button variant="outline" onClick={() => window.open(`http://localhost:5000${selectedScan.filePath || selectedScan.file_url}`, '_blank')}>
+                                        <Button variant="outline" onClick={() => window.open(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${selectedScan.filePath || selectedScan.file_url}`, '_blank')}>
                                             <FaDownload className="mr-2" /> Full Image
                                         </Button>
                                         {!aiAnalysis && (
                                             <Button onClick={runAIAnalysis} disabled={isAnalyzing}
-                                                className={`shadow-lg ${isBrainScan(selectedScan) ? 'bg-gradient-to-r from-purple-600 to-pink-600' : 'bg-gradient-to-r from-blue-600 to-purple-600'}`}>
+                                                className={`shadow-card ${isBrainScan(selectedScan) ? 'bg-gradient-to-r from-accent to-accent' : 'bg-gradient-to-r from-accent to-accent'}`}>
                                                 {isAnalyzing
                                                     ? <><FaSpinner className="animate-spin mr-2" /> Analyzing...</>
                                                     : <><FaRobot className="mr-2" /> {isBrainScan(selectedScan) ? 'Run Brain AI Analysis' : 'Run AI Analysis'}</>
@@ -715,7 +733,7 @@ const Diagnostics = () => {
                                         )}
                                         {aiAnalysis && (
                                             <Button onClick={handleDownloadPDF} disabled={isGeneratingPdf}
-                                                className="bg-gradient-to-r from-red-500 to-pink-600 shadow-lg text-white">
+                                                className="bg-gradient-to-r from-error to-accent shadow-card text-white">
                                                 {isGeneratingPdf
                                                     ? <><FaSpinner className="animate-spin mr-2" /> Generating...</>
                                                     : <><FaFilePdf className="mr-2" /> Download PDF</>
@@ -724,7 +742,7 @@ const Diagnostics = () => {
                                         )}
                                         {aiAnalysis && (
                                             <Button onClick={() => setShowFeedbackModal(true)}
-                                                className="bg-gradient-to-r from-orange-500 to-amber-500 shadow-lg text-white">
+                                                className="bg-gradient-to-r from-warning to-warning shadow-card text-white">
                                                 <FaExclamationTriangle className="mr-2" /> Flag as Incorrect
                                             </Button>
                                         )}
@@ -737,30 +755,30 @@ const Diagnostics = () => {
 
                                         {/* ── Image Panel ── */}
                                         <div className="space-y-4">
-                                            <div className="relative bg-gray-900 rounded-2xl p-4 overflow-hidden">
+                                            <div className="relative bg-surface rounded-xl p-4 overflow-hidden">
                                                 {/* Toggle buttons */}
                                                 <div className="absolute top-4 left-4 z-10 flex gap-2 flex-wrap">
                                                     <button onClick={() => setShowHeatmap('original')}
-                                                        className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${showHeatmap === 'original' ? 'bg-white text-gray-900' : 'bg-white/20 text-white hover:bg-white/30'}`}>
+                                                        className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${showHeatmap === 'original' ? 'bg-surface-secondary text-foreground' : 'bg-surface-secondary/20 text-white hover:bg-surface-secondary/30'}`}>
                                                         Original
                                                     </button>
                                                     {/* Retinal overlay toggle */}
                                                     {!isBrainScan(selectedScan) && aiAnalysis?.images?.overlay && (
                                                         <button onClick={() => setShowHeatmap(showHeatmap === 'overlay' ? 'original' : 'overlay')}
-                                                            className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${showHeatmap === 'overlay' ? 'bg-white text-gray-900' : 'bg-white/20 text-white hover:bg-white/30'}`}>
+                                                            className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${showHeatmap === 'overlay' ? 'bg-surface-secondary text-foreground' : 'bg-surface-secondary/20 text-white hover:bg-surface-secondary/30'}`}>
                                                             🔥 GradCAM
                                                         </button>
                                                     )}
                                                     {/* Brain heatmap toggles */}
                                                     {isBrainScan(selectedScan) && aiAnalysis?.images?.tumor_heatmap && (
                                                         <button onClick={() => setShowHeatmap(showHeatmap === 'tumor' ? 'original' : 'tumor')}
-                                                            className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${showHeatmap === 'tumor' ? 'bg-red-400 text-white' : 'bg-white/20 text-white hover:bg-white/30'}`}>
+                                                            className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${showHeatmap === 'tumor' ? 'bg-red-400 text-white' : 'bg-surface-secondary/20 text-white hover:bg-surface-secondary/30'}`}>
                                                             🔥 Tumor CAM
                                                         </button>
                                                     )}
                                                     {isBrainScan(selectedScan) && aiAnalysis?.images?.alz_heatmap && (
                                                         <button onClick={() => setShowHeatmap(showHeatmap === 'alz' ? 'original' : 'alz')}
-                                                            className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${showHeatmap === 'alz' ? 'bg-orange-400 text-white' : 'bg-white/20 text-white hover:bg-white/30'}`}>
+                                                            className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${showHeatmap === 'alz' ? 'bg-orange-400 text-white' : 'bg-surface-secondary/20 text-white hover:bg-surface-secondary/30'}`}>
                                                             🔥 Alzheimer CAM
                                                         </button>
                                                     )}
@@ -769,39 +787,39 @@ const Diagnostics = () => {
                                                 <img
                                                     src={getDisplayImage()}
                                                     alt="Scan"
-                                                    className="max-h-[400px] w-full object-contain rounded-lg mt-8"
+                                                    className="max-h-[400px] w-full object-contain rounded-xl mt-8"
                                                     onError={(e) => { e.target.src = 'https://via.placeholder.com/400x400?text=Scan+Preview'; }}
                                                 />
 
                                                 {showHeatmap !== 'original' && (
                                                     <div className="mt-3 flex items-center justify-center gap-2 text-white text-sm">
-                                                        <span className="w-3 h-3 rounded bg-red-500"></span><span>High Attention</span>
-                                                        <span className="w-3 h-3 rounded bg-yellow-500 ml-2"></span><span>Medium</span>
-                                                        <span className="w-3 h-3 rounded bg-blue-500 ml-2"></span><span>Low</span>
+                                                        <span className="w-3 h-3 rounded bg-error"></span><span>High Attention</span>
+                                                        <span className="w-3 h-3 rounded bg-warning ml-2"></span><span>Medium</span>
+                                                        <span className="w-3 h-3 rounded bg-accent-subtle0 ml-2"></span><span>Low</span>
                                                     </div>
                                                 )}
                                             </div >
 
                                             {/* Scan Metadata */}
-                                            < div className="bg-gray-50 rounded-xl p-4" >
-                                                <h4 className="font-semibold text-gray-700 mb-3 flex items-center gap-2"><FaFileAlt /> Scan Information</h4>
+                                            < div className="bg-surface-secondary/60 rounded-xl p-4" >
+                                                <h4 className="font-semibold text-foreground-muted mb-3 flex items-center gap-2"><FaFileAlt /> Scan Information</h4>
                                                 <div className="grid grid-cols-2 gap-3 text-sm">
-                                                    <div><span className="text-gray-500">Patient:</span><span className="ml-2 font-medium">{selectedScan.Patient?.User?.name || 'N/A'}</span></div>
-                                                    <div><span className="text-gray-500">Type:</span><span className="ml-2 font-medium capitalize">{(selectedScan.scanType || selectedScan.scan_type || 'N/A').replace('_', ' ')}</span></div>
-                                                    <div><span className="text-gray-500">Source:</span><span className="ml-2 font-medium capitalize">{selectedScan.scan_source || 'External'}</span></div>
-                                                    <div><span className="text-gray-500">Uploaded:</span><span className="ml-2 font-medium">{new Date(selectedScan.createdAt).toLocaleDateString()}</span></div>
+                                                    <div><span className="text-foreground-muted">Patient:</span><span className="ml-2 font-medium">{selectedScan.Patient?.User?.name || 'N/A'}</span></div>
+                                                    <div><span className="text-foreground-muted">Type:</span><span className="ml-2 font-medium capitalize">{(selectedScan.scanType || selectedScan.scan_type || 'N/A').replace('_', ' ')}</span></div>
+                                                    <div><span className="text-foreground-muted">Source:</span><span className="ml-2 font-medium capitalize">{selectedScan.scan_source || 'External'}</span></div>
+                                                    <div><span className="text-foreground-muted">Uploaded:</span><span className="ml-2 font-medium">{new Date(selectedScan.createdAt).toLocaleDateString()}</span></div>
                                                     {/* Retinal-specific meta */}
                                                     {aiAnalysis?.analysis_meta && !isBrainScan(selectedScan) && (
                                                         <>
-                                                            <div><span className="text-gray-500">Eye Side:</span><span className="ml-2 font-medium capitalize">{aiAnalysis.analysis_meta.eye_side} ({aiAnalysis.analysis_meta.eye_confidence})</span></div>
-                                                            <div><span className="text-gray-500">Threshold:</span><span className="ml-2 font-medium">{aiAnalysis.analysis_meta.otsu_threshold}</span></div>
+                                                            <div><span className="text-foreground-muted">Eye Side:</span><span className="ml-2 font-medium capitalize">{aiAnalysis.analysis_meta.eye_side} ({aiAnalysis.analysis_meta.eye_confidence})</span></div>
+                                                            <div><span className="text-foreground-muted">Threshold:</span><span className="ml-2 font-medium">{aiAnalysis.analysis_meta.otsu_threshold}</span></div>
                                                         </>
                                                     )}
                                                     {/* Brain-specific meta */}
                                                     {isBrainScan(selectedScan) && aiAnalysis && (
                                                         <>
-                                                            <div><span className="text-gray-500">Tumor Model:</span><span className="ml-2 font-medium">{aiAnalysis.model_version?.tumor_model || 'ResNet18'}</span></div>
-                                                            <div><span className="text-gray-500">Alz. Model:</span><span className="ml-2 font-medium">{aiAnalysis.model_version?.alzheimer_model || 'DenseNet121'}</span></div>
+                                                            <div><span className="text-foreground-muted">Tumor Model:</span><span className="ml-2 font-medium">{aiAnalysis.model_version?.tumor_model || 'ResNet18'}</span></div>
+                                                            <div><span className="text-foreground-muted">Alz. Model:</span><span className="ml-2 font-medium">{aiAnalysis.model_version?.alzheimer_model || 'DenseNet121'}</span></div>
                                                         </>
                                                     )}
                                                 </div>
@@ -812,21 +830,21 @@ const Diagnostics = () => {
                                         < div className="space-y-4" >
                                             {
                                                 isAnalyzing ? (
-                                                    <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl p-8 text-center border border-blue-100" >
+                                                    <div className="bg-gradient-to-br from-accent/10 to-accent/10 rounded-xl p-8 text-center border border-accent/20" >
                                                         <div className="relative w-20 h-20 mx-auto mb-4">
-                                                            <div className="absolute inset-0 border-4 border-blue-200 rounded-full"></div>
+                                                            <div className="absolute inset-0 border-4 border-accent/20 rounded-full"></div>
                                                             <div className="absolute inset-0 border-4 border-blue-600 rounded-full border-t-transparent animate-spin"></div>
                                                             <div className="absolute inset-0 flex items-center justify-center">
-                                                                <FaBrain className="text-2xl text-blue-600" />
+                                                                <FaBrain className="text-2xl text-accent" />
                                                             </div>
                                                         </div>
-                                                        <h3 className="text-lg font-bold text-gray-800 mb-2">AI Analysis in Progress</h3>
-                                                        <p className="text-gray-500 text-sm">
+                                                        <h3 className="text-lg font-bold text-foreground mb-2">AI Analysis in Progress</h3>
+                                                        <p className="text-foreground-muted text-sm">
                                                             {isBrainScan(selectedScan)
                                                                 ? 'Running Tumor (ResNet18) + Alzheimer (DenseNet121) models...'
                                                                 : 'Running GradCAM on EfficientNetB3...'}
                                                         </p>
-                                                        <div className="mt-4 space-y-2 text-xs text-gray-400">
+                                                        <div className="mt-4 space-y-2 text-xs text-foreground-subtle">
                                                             <p>✓ Image preprocessing</p>
                                                             <p>⟳ Running neural network inference...</p>
                                                             <p>○ Generating GradCAM heatmap</p>
@@ -840,10 +858,10 @@ const Diagnostics = () => {
                                                         : renderRetinalResults()
 
                                                 ) : (
-                                                    <div className="bg-gray-50 rounded-xl p-8 text-center border-2 border-dashed border-gray-200">
-                                                        <FaRobot className="text-5xl text-gray-300 mx-auto mb-4" />
-                                                        <h3 className="text-lg font-bold text-gray-600 mb-2">Ready for AI Analysis</h3>
-                                                        <p className="text-gray-400 text-sm mb-4">
+                                                    <div className="bg-surface-secondary/60 rounded-xl p-8 text-center border-2 border-dashed border-white/[0.06]">
+                                                        <FaRobot className="text-5xl text-foreground-subtle mx-auto mb-4" />
+                                                        <h3 className="text-lg font-bold text-foreground-muted mb-2">Ready for AI Analysis</h3>
+                                                        <p className="text-foreground-subtle text-sm mb-4">
                                                             {isBrainScan(selectedScan)
                                                                 ? 'Click "Run Brain AI Analysis" to detect tumor & Alzheimer\'s.'
                                                                 : 'Click "Run AI Analysis" to process this retinal scan.'}
@@ -857,18 +875,18 @@ const Diagnostics = () => {
                                             {/* Doctor Report Form */}
                                             {
                                                 aiAnalysis && !reportSubmitted && (
-                                                    <form onSubmit={handleCreateReport} className="bg-white rounded-xl p-6 border border-gray-100">
-                                                        <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
-                                                            <FaFileAlt className="text-blue-500" /> Doctor's Final Report
+                                                    <form onSubmit={handleCreateReport} className="bg-surface-secondary rounded-xl p-6 border border-white/5">
+                                                        <h3 className="font-bold text-foreground mb-4 flex items-center gap-2">
+                                                            <FaFileAlt className="text-accent" /> Doctor's Final Report
                                                         </h3>
                                                         <div className="space-y-4">
                                                             <div>
-                                                                <label className="block text-sm font-medium text-gray-700 mb-2">Diagnosis</label>
+                                                                <label className="block text-sm font-medium text-foreground-muted mb-2">Diagnosis</label>
                                                                 <Input value={diagnosis} onChange={(e) => setDiagnosis(e.target.value)} placeholder="Enter final diagnosis..." required />
                                                             </div>
                                                             <div>
                                                                 <div className="flex justify-between items-center mb-2">
-                                                                    <label className="block text-sm font-medium text-gray-700">Patient-Friendly Summary</label>
+                                                                    <label className="block text-sm font-medium text-foreground-muted">Patient-Friendly Summary</label>
                                                                     <button 
                                                                         type="button"
                                                                         onClick={() => {
@@ -883,37 +901,37 @@ const Diagnostics = () => {
                                                                                 else setPatientFriendlySummary(`The analysis identified patterns consistent with ${cond}. This suggests some changes in the eye that require professional review.`);
                                                                             }
                                                                         }}
-                                                                        className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                                                                        className="text-xs font-bold text-accent hover:text-accent flex items-center gap-1"
                                                                     >
                                                                         <FaRobot /> Suggest Summary
                                                                     </button>
                                                                 </div>
                                                                 <textarea rows={3}
-                                                                    className="w-full px-4 py-3 rounded-xl bg-blue-50/30 border border-blue-100 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all resize-none text-sm text-blue-900"
+                                                                    className="w-full px-4 py-3 rounded-xl bg-accent-subtle/30 border border-accent/20 focus:border-accent focus:ring-2 focus:ring-accent/10 outline-none transition-all resize-none text-sm text-foreground"
                                                                     value={patientFriendlySummary} onChange={(e) => setPatientFriendlySummary(e.target.value)}
                                                                     placeholder="Write a simplified summary for the patient to understand..." required />
                                                             </div>
 
                                                             <div>
-                                                                <label className="block text-sm font-medium text-gray-700 mb-2">Detailed Physician Notes (Technical)</label>
+                                                                <label className="block text-sm font-medium text-foreground-muted mb-2">Detailed Physician Notes (Technical)</label>
                                                                 <textarea rows={3}
-                                                                    className="w-full px-4 py-3 rounded-xl bg-white border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all resize-none text-sm"
+                                                                    className="w-full px-4 py-3 rounded-xl bg-surface-secondary border border-white/[0.06] focus:border-accent focus:ring-2 focus:ring-accent/10 outline-none transition-all resize-none text-sm"
                                                                     value={doctorNotes} onChange={(e) => setDoctorNotes(e.target.value)}
                                                                     placeholder="Add technical clinical notes..." required />
                                                             </div>
 
                                                             <div>
-                                                                <label className="block text-sm font-medium text-gray-700 mb-2">Recommendations & Follow-up</label>
+                                                                <label className="block text-sm font-medium text-foreground-muted mb-2">Recommendations & Follow-up</label>
                                                                 <textarea rows={2}
-                                                                    className="w-full px-4 py-3 rounded-xl bg-white border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all resize-none text-sm"
+                                                                    className="w-full px-4 py-3 rounded-xl bg-surface-secondary border border-white/[0.06] focus:border-accent focus:ring-2 focus:ring-accent/10 outline-none transition-all resize-none text-sm"
                                                                     value={recommendations} onChange={(e) => setRecommendations(e.target.value)}
                                                                     placeholder="e.g. Schedule MRI in 6 months, Consult Neurology..." required />
                                                             </div>
                                                             <div className="flex gap-3">
-                                                                <Button type="submit" size="lg" className="flex-1 shadow-lg">
+                                                                <Button type="submit" size="lg" className="flex-1 shadow-card">
                                                                     <FaCheckCircle className="mr-2" /> Finalize & Notify Patient
                                                                 </Button>
-                                                                <Button type="button" onClick={handleDownloadPDF} disabled={isGeneratingPdf} size="lg" className="bg-red-500 hover:bg-red-600 text-white shadow-lg">
+                                                                <Button type="button" onClick={handleDownloadPDF} disabled={isGeneratingPdf} size="lg" className="bg-error hover:bg-red-600 text-white shadow-card">
                                                                     {isGeneratingPdf ? <FaSpinner className="animate-spin" /> : <FaFilePdf />}
                                                                 </Button>
                                                             </div>
@@ -925,11 +943,23 @@ const Diagnostics = () => {
                                             {/* Report Submitted */}
                                             {
                                                 reportSubmitted && (
-                                                    <div className="bg-green-50 rounded-xl p-6 border border-green-100 text-center">
-                                                        <FaCheckCircle className="text-4xl text-green-500 mx-auto mb-3" />
-                                                        <h3 className="font-bold text-green-800 mb-1">Report Finalized!</h3>
-                                                        <p className="text-sm text-green-600 mb-4">Patient has been notified.</p>
-                                                        <Button onClick={handleDownloadPDF} disabled={isGeneratingPdf} className="bg-red-500 hover:bg-red-600 text-white mx-auto">
+                                                    <div className="bg-success/10 rounded-xl p-6 border border-success/20 text-center">
+                                                        <FaCheckCircle className="text-4xl text-success mx-auto mb-3" />
+                                                        <h3 className="font-bold text-foreground mb-1">Report Finalized!</h3>
+                                                        <p className="text-sm text-success mb-4">Patient has been notified.</p>
+                                                        <Button
+                                                            onClick={() => {
+                                                                const pdfPath = finalizedReport?.final_report;
+                                                                if (pdfPath) {
+                                                                    const base = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace('/api', '');
+                                                                    window.open(`${base}${pdfPath}`, '_blank');
+                                                                } else {
+                                                                    handleDownloadPDF();
+                                                                }
+                                                            }}
+                                                            disabled={isGeneratingPdf}
+                                                            className="bg-error hover:bg-red-600 text-white mx-auto"
+                                                        >
                                                             {isGeneratingPdf ? <><FaSpinner className="animate-spin mr-2" /> Generating...</> : <><FaFilePdf className="mr-2" /> Download PDF Report</>}
                                                         </Button>
                                                     </div>
@@ -938,16 +968,19 @@ const Diagnostics = () => {
                                         </div >
                                     </div >
                                 </div >
-                            </GlassCard >
+                                        </div >
+                                    </div >
+                                </div >
+                            </div >
                         </motion.div >
                     ) : (
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="h-full flex items-center justify-center">
                             <GlassCard className="p-12 text-center max-w-md">
-                                <div className="w-24 h-24 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                                    <FaMicroscope className="text-4xl text-blue-500" />
+                                <div className="w-24 h-24 bg-gradient-to-br from-accent-subtle to-accent-subtle rounded-full flex items-center justify-center mx-auto mb-6">
+                                    <FaMicroscope className="text-4xl text-accent" />
                                 </div>
-                                <h3 className="text-xl font-bold text-gray-800 mb-2">Select a Scan</h3>
-                                <p className="text-gray-500">Choose a pending scan from the sidebar to view details, run AI analysis, and create a diagnostic report.</p>
+                                <h3 className="text-xl font-bold text-foreground mb-2">Select a Scan</h3>
+                                <p className="text-foreground-muted">Choose a pending scan from the sidebar to view details, run AI analysis, and create a diagnostic report.</p>
                             </GlassCard>
                         </motion.div>
                     )}
@@ -970,12 +1003,12 @@ const Diagnostics = () => {
                             initial={{ opacity: 0, scale: 0.95, y: 10 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                            className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden"
+                            className="relative w-full max-w-md bg-surface-secondary rounded-xl shadow-card overflow-hidden"
                         >
                             {/* Header */}
-                            <div className="bg-gradient-to-r from-orange-500 to-amber-500 p-5">
+                            <div className="bg-gradient-to-r from-warning to-warning p-5">
                                 <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-white/20 rounded-lg">
+                                    <div className="p-2 bg-surface-secondary/20 rounded-xl">
                                         <FaExclamationTriangle className="text-white text-lg" />
                                     </div>
                                     <div>
@@ -987,9 +1020,9 @@ const Diagnostics = () => {
 
                             <div className="p-6 space-y-4">
                                 {/* AI Said */}
-                                <div className="bg-orange-50 border border-orange-100 rounded-xl p-3 text-sm">
-                                    <span className="text-orange-600 font-semibold">AI Predicted: </span>
-                                    <span className="text-gray-700 capitalize">
+                                <div className="bg-warning/10 border border-warning/20 rounded-xl p-3 text-sm">
+                                    <span className="text-warning font-semibold">AI Predicted: </span>
+                                    <span className="text-foreground-muted capitalize">
                                         {isBrainScan(selectedScan)
                                             ? `Tumor: ${aiAnalysis?.tumor?.prediction?.replace(/_/g, ' ') || '—'}  |  Alzheimer's: ${aiAnalysis?.alzheimer?.prediction?.replace(/_/g, ' ') || '—'}`
                                             : aiAnalysis?.prediction?.class_name?.replace(/_/g, ' ') || '—'
@@ -999,13 +1032,13 @@ const Diagnostics = () => {
 
                                 {/* Corrected Diagnosis */}
                                 <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                                        Corrected Diagnosis <span className="text-red-500">*</span>
+                                    <label className="block text-sm font-semibold text-foreground-muted mb-1.5">
+                                        Corrected Diagnosis <span className="text-error">*</span>
                                     </label>
                                     <select
                                         value={correctedDiagnosis}
                                         onChange={(e) => setCorrectedDiagnosis(e.target.value)}
-                                        className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all bg-white text-gray-800 text-sm"
+                                        className="w-full px-4 py-2.5 rounded-xl border border-white/[0.06] focus:border-accent focus:ring-2 focus:ring-orange-100 outline-none transition-all bg-surface-secondary text-foreground text-sm"
                                     >
                                         <option value="">Select correct diagnosis...</option>
                                         {getDiagnosisOptions().map(opt => (
@@ -1016,13 +1049,13 @@ const Diagnostics = () => {
 
                                 {/* Reason */}
                                 <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                                        Reason <span className="text-red-500">*</span>
+                                    <label className="block text-sm font-semibold text-foreground-muted mb-1.5">
+                                        Reason <span className="text-error">*</span>
                                     </label>
                                     <select
                                         value={feedbackReason}
                                         onChange={(e) => setFeedbackReason(e.target.value)}
-                                        className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all bg-white text-gray-800 text-sm"
+                                        className="w-full px-4 py-2.5 rounded-xl border border-white/[0.06] focus:border-accent focus:ring-2 focus:ring-orange-100 outline-none transition-all bg-surface-secondary text-foreground text-sm"
                                     >
                                         <option value="">Select reason...</option>
                                         <option value="wrong_class">Wrong class predicted</option>
@@ -1034,14 +1067,14 @@ const Diagnostics = () => {
 
                                 {/* Additional Notes */}
                                 <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                                        Additional Notes <span className="text-gray-400 font-normal">(optional)</span>
+                                    <label className="block text-sm font-semibold text-foreground-muted mb-1.5">
+                                        Additional Notes <span className="text-foreground-subtle font-normal">(optional)</span>
                                     </label>
                                     <textarea
                                         value={feedbackNotes}
                                         onChange={(e) => setFeedbackNotes(e.target.value)}
                                         placeholder="Add any clinical observations or context..."
-                                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all resize-none text-sm"
+                                        className="w-full px-4 py-3 rounded-xl border border-white/[0.06] focus:border-accent focus:ring-2 focus:ring-orange-100 outline-none transition-all resize-none text-sm"
                                         rows={3}
                                     />
                                 </div>
@@ -1057,7 +1090,7 @@ const Diagnostics = () => {
                                         Cancel
                                     </Button>
                                     <Button
-                                        className="flex-1 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-md"
+                                        className="flex-1 bg-gradient-to-r from-warning to-warning hover:from-orange-600 hover:to-amber-600 text-white shadow-card"
                                         onClick={handleSubmitFeedback}
                                         disabled={submittingFeedback}
                                     >

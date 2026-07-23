@@ -4,16 +4,16 @@ const crypto = require('crypto');
 const { Op } = require('sequelize');
 const { sendVerificationEmail, sendPasswordResetEmail } = require('../utils/emailService');
 
-// Generate Access Token (15 min)
+// Generate Access Token (7 days for stable dev/testing experience)
 const generateAccessToken = (user) => {
     return jwt.sign(
         {
             userId: user.id,
             role: user.role,
-            permissions: [] // Can populate from matrix if needed in token
+            permissions: []
         },
         process.env.JWT_SECRET,
-        { expiresIn: '15m' }
+        { expiresIn: '7d' }
     );
 };
 

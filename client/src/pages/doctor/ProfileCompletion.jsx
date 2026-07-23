@@ -199,14 +199,14 @@ const ProfileCompletion = () => {
             <div className="min-h-screen flex items-center justify-center">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                    <p className="text-gray-500">Loading profile...</p>
+                    <p className="text-foreground-muted">Loading profile...</p>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50/30 p-6">
+        <div className="min-h-screen bg-surface p-6">
             <div className="max-w-4xl mx-auto">
                 <motion.div
                     initial={{ opacity: 0, y: -20 }}
@@ -216,18 +216,18 @@ const ProfileCompletion = () => {
                     {verificationStatus === 'approved' ? (
                         <>
                             <div className="flex items-center gap-3 mb-4">
-                                <div className="px-4 py-2 bg-green-100 text-green-800 rounded-full font-semibold flex items-center gap-2">
-                                    <FaCheckCircle className="text-green-600" />
+                                <div className="px-4 py-2 bg-success/10 text-foreground rounded-full font-semibold flex items-center gap-2">
+                                    <FaCheckCircle className="text-success" />
                                     Verification Complete
                                 </div>
                             </div>
-                            <h1 className="text-3xl font-bold text-gray-800 mb-2">Edit Your Professional Profile</h1>
-                            <p className="text-gray-600">Your profile is verified. You can update your information below.</p>
+                            <h1 className="text-3xl font-bold text-foreground mb-2">Edit Your Professional Profile</h1>
+                            <p className="text-foreground-muted">Your profile is verified. You can update your information below.</p>
                         </>
                     ) : (
                         <>
-                            <h1 className="text-3xl font-bold text-gray-800 mb-2">Complete Your Professional Profile</h1>
-                            <p className="text-gray-600">Fill in your details to get verified and start taking appointments</p>
+                            <h1 className="text-3xl font-bold text-foreground mb-2">Complete Your Professional Profile</h1>
+                            <p className="text-foreground-muted">Fill in your details to get verified and start taking appointments</p>
                         </>
                     )}
                 </motion.div>
@@ -237,27 +237,27 @@ const ProfileCompletion = () => {
                         initial={{ opacity: 0, y: -20 }}
                         animate={{ opacity: 1, y: 0 }}
                         className={`mb-6 p-6 rounded-xl border-2 ${verificationStatus === 'approved'
-                            ? 'bg-green-50 border-green-500'
-                            : 'bg-yellow-50 border-yellow-500'
+                            ? 'bg-success/10 border-success'
+                            : 'bg-warning/10 border-warning'
                             }`}
                     >
                         <div className="flex items-start gap-4">
-                            <FaCheckCircle className={`text-3xl ${verificationStatus === 'approved' ? 'text-green-600' : 'text-yellow-600'
+                            <FaCheckCircle className={`text-3xl ${verificationStatus === 'approved' ? 'text-success' : 'text-warning'
                                 }`} />
                             <div className="flex-1">
-                                <h3 className={`font-bold text-lg mb-2 ${verificationStatus === 'approved' ? 'text-green-800' : 'text-yellow-800'
+                                <h3 className={`font-bold text-lg mb-2 ${verificationStatus === 'approved' ? 'text-foreground' : 'text-foreground'
                                     }`}>
                                     {verificationStatus === 'approved'
                                         ? '🎉 Profile Verified!'
                                         : '✅ Profile Submitted for Verification'}
                                 </h3>
-                                <p className={`text-sm leading-relaxed ${verificationStatus === 'approved' ? 'text-green-700' : 'text-yellow-700'
+                                <p className={`text-sm leading-relaxed ${verificationStatus === 'approved' ? 'text-success' : 'text-warning'
                                     }`}>
                                     {success}
                                 </p>
                                 {verificationStatus === 'pending' && (
-                                    <div className="mt-4 p-3 bg-yellow-100 rounded-lg">
-                                        <p className="text-xs text-yellow-800 font-medium">
+                                    <div className="mt-4 p-3 bg-warning/10 rounded-xl">
+                                        <p className="text-xs text-foreground font-medium">
                                             ⏳ Your profile is now under review. You will be redirected to the dashboard shortly...
                                         </p>
                                     </div>
@@ -271,7 +271,7 @@ const ProfileCompletion = () => {
                     <motion.div
                         initial={{ opacity: 0, y: -20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="mb-6 p-4 bg-red-50 border border-red-200 text-red-800 rounded-xl"
+                        className="mb-6 p-4 bg-error/10 border border-error/20 text-foreground rounded-xl"
                     >
                         {error}
                     </motion.div>
@@ -280,31 +280,31 @@ const ProfileCompletion = () => {
                 <form onSubmit={handleSubmit}>
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <GlassCard className="p-6">
-                            <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-                                <FaUserMd className="text-blue-600" /> Basic Information
+                            <h2 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
+                                <FaUserMd className="text-accent" /> Basic Information
                             </h2>
                             <div className="space-y-4">
                                 <div>
-                                    <label className="block text-sm font-medium mb-2 text-gray-700">Full Name</label>
+                                    <label className="block text-sm font-medium mb-2 text-foreground-muted">Full Name</label>
                                     <input
                                         type="text"
                                         value={user?.name || ''}
                                         disabled
-                                        className="w-full px-4 py-3 rounded-xl bg-gray-100 border border-gray-200 text-gray-500"
+                                        className="w-full px-4 py-3 rounded-xl bg-surface-tertiary border border-white/[0.06] text-foreground-muted"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium mb-2 text-gray-700">Email</label>
+                                    <label className="block text-sm font-medium mb-2 text-foreground-muted">Email</label>
                                     <input
                                         type="email"
                                         value={user?.email || ''}
                                         disabled
-                                        className="w-full px-4 py-3 rounded-xl bg-gray-100 border border-gray-200 text-gray-500"
+                                        className="w-full px-4 py-3 rounded-xl bg-surface-tertiary border border-white/[0.06] text-foreground-muted"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium mb-2 text-gray-700">
-                                        Phone Number <span className="text-red-500">*</span>
+                                    <label className="block text-sm font-medium mb-2 text-foreground-muted">
+                                        Phone Number <span className="text-error">*</span>
                                     </label>
                                     <input
                                         type="tel"
@@ -313,31 +313,31 @@ const ProfileCompletion = () => {
                                         onChange={handleChange}
                                         placeholder="03001234567"
                                         required
-                                        className="w-full px-4 py-3 rounded-xl bg-white border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none"
+                                        className="w-full px-4 py-3 rounded-xl bg-surface-secondary border border-white/[0.06] focus:border-accent focus:ring-2 focus:ring-accent/20 outline-none"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium mb-2 text-gray-700">Bio / About</label>
+                                    <label className="block text-sm font-medium mb-2 text-foreground-muted">Bio / About</label>
                                     <textarea
                                         name="bio"
                                         value={formData.bio}
                                         onChange={handleChange}
                                         placeholder="Tell patients about your expertise..."
                                         rows={4}
-                                        className="w-full px-4 py-3 rounded-xl bg-white border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none resize-none"
+                                        className="w-full px-4 py-3 rounded-xl bg-surface-secondary border border-white/[0.06] focus:border-accent focus:ring-2 focus:ring-accent/20 outline-none resize-none"
                                     />
                                 </div>
                             </div>
                         </GlassCard>
 
                         <GlassCard className="p-6">
-                            <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-                                <FaBriefcaseMedical className="text-blue-600" /> Professional Information
+                            <h2 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
+                                <FaBriefcaseMedical className="text-accent" /> Professional Information
                             </h2>
                             <div className="space-y-4">
                                 <div>
-                                    <label className="block text-sm font-medium mb-2 text-gray-700">
-                                        PMDC Number <span className="text-red-500">*</span>
+                                    <label className="block text-sm font-medium mb-2 text-foreground-muted">
+                                        PMDC Number <span className="text-error">*</span>
                                     </label>
                                     <input
                                         type="text"
@@ -346,19 +346,19 @@ const ProfileCompletion = () => {
                                         onChange={handleChange}
                                         placeholder="12345-P"
                                         required
-                                        className="w-full px-4 py-3 rounded-xl bg-white border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none"
+                                        className="w-full px-4 py-3 rounded-xl bg-surface-secondary border border-white/[0.06] focus:border-accent focus:ring-2 focus:ring-accent/20 outline-none"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium mb-2 text-gray-700">
-                                        Specialization <span className="text-red-500">*</span>
+                                    <label className="block text-sm font-medium mb-2 text-foreground-muted">
+                                        Specialization <span className="text-error">*</span>
                                     </label>
                                     <select
                                         name="specialization"
                                         value={formData.specialization}
                                         onChange={handleChange}
                                         required
-                                        className="w-full px-4 py-3 rounded-xl bg-white border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none"
+                                        className="w-full px-4 py-3 rounded-xl bg-surface-secondary border border-white/[0.06] focus:border-accent focus:ring-2 focus:ring-accent/20 outline-none"
                                     >
                                         <option value="">Select Specialization</option>
                                         {specializations.map(spec => (
@@ -368,8 +368,8 @@ const ProfileCompletion = () => {
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-sm font-medium mb-2 text-gray-700">
-                                            Experience (Years) <span className="text-red-500">*</span>
+                                        <label className="block text-sm font-medium mb-2 text-foreground-muted">
+                                            Experience (Years) <span className="text-error">*</span>
                                         </label>
                                         <input
                                             type="number"
@@ -379,12 +379,12 @@ const ProfileCompletion = () => {
                                             placeholder="10"
                                             min="0"
                                             required
-                                            className="w-full px-4 py-3 rounded-xl bg-white border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none"
+                                            className="w-full px-4 py-3 rounded-xl bg-surface-secondary border border-white/[0.06] focus:border-accent focus:ring-2 focus:ring-accent/20 outline-none"
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium mb-2 text-gray-700">
-                                            Consultation Fee (PKR) <span className="text-red-500">*</span>
+                                        <label className="block text-sm font-medium mb-2 text-foreground-muted">
+                                            Consultation Fee (PKR) <span className="text-error">*</span>
                                         </label>
                                         <input
                                             type="number"
@@ -394,13 +394,13 @@ const ProfileCompletion = () => {
                                             placeholder="2000"
                                             min="500"
                                             required
-                                            className="w-full px-4 py-3 rounded-xl bg-white border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none"
+                                            className="w-full px-4 py-3 rounded-xl bg-surface-secondary border border-white/[0.06] focus:border-accent focus:ring-2 focus:ring-accent/20 outline-none"
                                         />
                                     </div>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium mb-2 text-gray-700">
-                                        Medical College <span className="text-red-500">*</span>
+                                    <label className="block text-sm font-medium mb-2 text-foreground-muted">
+                                        Medical College <span className="text-error">*</span>
                                     </label>
                                     <input
                                         type="text"
@@ -409,11 +409,11 @@ const ProfileCompletion = () => {
                                         onChange={handleChange}
                                         placeholder="King Edward Medical University"
                                         required
-                                        className="w-full px-4 py-3 rounded-xl bg-white border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none"
+                                        className="w-full px-4 py-3 rounded-xl bg-surface-secondary border border-white/[0.06] focus:border-accent focus:ring-2 focus:ring-accent/20 outline-none"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium mb-2 text-gray-700">Passing Year</label>
+                                    <label className="block text-sm font-medium mb-2 text-foreground-muted">Passing Year</label>
                                     <input
                                         type="number"
                                         name="passingYear"
@@ -422,7 +422,7 @@ const ProfileCompletion = () => {
                                         placeholder="2015"
                                         min="1970"
                                         max={new Date().getFullYear()}
-                                        className="w-full px-4 py-3 rounded-xl bg-white border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none"
+                                        className="w-full px-4 py-3 rounded-xl bg-surface-secondary border border-white/[0.06] focus:border-accent focus:ring-2 focus:ring-accent/20 outline-none"
                                     />
                                 </div>
                             </div>
@@ -430,17 +430,17 @@ const ProfileCompletion = () => {
 
                         {/* Working Hours Configuration */}
                         <GlassCard className="p-6 lg:col-span-2">
-                            <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-                                <FaClock className="text-blue-600" /> Availability & Schedule
+                            <h2 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
+                                <FaClock className="text-accent" /> Availability & Schedule
                             </h2>
                             <div className="flex justify-between items-start mb-6">
-                                <p className="text-sm text-gray-600">
+                                <p className="text-sm text-foreground-muted">
                                     Set your availability for physical and virtual consultations separately. Leave time blank if you are not available for that type on a given day.
                                 </p>
                                 <button
                                     type="button"
                                     onClick={applyMondayToWeekdays}
-                                    className="text-xs font-semibold bg-blue-100 text-blue-700 px-3 py-2 rounded hover:bg-blue-200 transition-colors shrink-0 ml-4"
+                                    className="text-xs font-semibold bg-accent-subtle text-accent px-3 py-2 rounded hover:bg-accent-subtle transition-colors shrink-0 ml-4"
                                 >
                                     Copy Monday to all Weekdays
                                 </button>
@@ -448,45 +448,45 @@ const ProfileCompletion = () => {
 
                             <div className="space-y-6">
                                 {DAYS_OF_WEEK.map((day) => (
-                                    <div key={day} className="grid grid-cols-1 md:grid-cols-5 gap-4 items-center bg-gray-50 p-4 rounded-xl border border-gray-200">
-                                        <div className="font-semibold text-gray-700 md:col-span-1">{day}</div>
+                                    <div key={day} className="grid grid-cols-1 md:grid-cols-5 gap-4 items-center bg-surface-secondary/60 p-4 rounded-xl border border-white/[0.06]">
+                                        <div className="font-semibold text-foreground-muted md:col-span-1">{day}</div>
 
                                         {/* Physical Hours */}
-                                        <div className="md:col-span-2 space-y-2 border-l-2 md:border-l-0 md:pl-0 pl-3 border-blue-200">
-                                            <label className="block text-xs font-medium text-blue-600 uppercase">Physical Appointments</label>
+                                        <div className="md:col-span-2 space-y-2 border-l-2 md:border-l-0 md:pl-0 pl-3 border-accent/20">
+                                            <label className="block text-xs font-medium text-accent uppercase">Physical Appointments</label>
                                             <div className="flex items-center gap-2">
                                                 <input
                                                     type="time"
                                                     value={formData.workingHours[day].physical.start || ''}
                                                     onChange={e => handleWorkingHoursChange(day, 'physical', 'start', e.target.value)}
-                                                    className="w-full px-3 py-2 rounded-lg bg-white border border-gray-200 focus:border-blue-500 text-sm"
+                                                    className="w-full px-3 py-2 rounded-xl bg-surface-secondary border border-white/[0.06] focus:border-blue-500 text-sm"
                                                 />
-                                                <span className="text-gray-400">to</span>
+                                                <span className="text-foreground-subtle">to</span>
                                                 <input
                                                     type="time"
                                                     value={formData.workingHours[day].physical.end || ''}
                                                     onChange={e => handleWorkingHoursChange(day, 'physical', 'end', e.target.value)}
-                                                    className="w-full px-3 py-2 rounded-lg bg-white border border-gray-200 focus:border-blue-500 text-sm"
+                                                    className="w-full px-3 py-2 rounded-xl bg-surface-secondary border border-white/[0.06] focus:border-blue-500 text-sm"
                                                 />
                                             </div>
                                         </div>
 
                                         {/* Virtual Hours */}
-                                        <div className="md:col-span-2 space-y-2 border-l-2 md:border-l-0 md:pl-0 pl-3 border-purple-200">
-                                            <label className="block text-xs font-medium text-purple-600 uppercase">Virtual Appointments</label>
+                                        <div className="md:col-span-2 space-y-2 border-l-2 md:border-l-0 md:pl-0 pl-3 border-accent/20">
+                                            <label className="block text-xs font-medium text-accent uppercase">Virtual Appointments</label>
                                             <div className="flex items-center gap-2">
                                                 <input
                                                     type="time"
                                                     value={formData.workingHours[day].virtual.start || ''}
                                                     onChange={e => handleWorkingHoursChange(day, 'virtual', 'start', e.target.value)}
-                                                    className="w-full px-3 py-2 rounded-lg bg-white border border-gray-200 focus:border-purple-500 text-sm"
+                                                    className="w-full px-3 py-2 rounded-xl bg-surface-secondary border border-white/[0.06] focus:border-accent text-sm"
                                                 />
-                                                <span className="text-gray-400">to</span>
+                                                <span className="text-foreground-subtle">to</span>
                                                 <input
                                                     type="time"
                                                     value={formData.workingHours[day].virtual.end || ''}
                                                     onChange={e => handleWorkingHoursChange(day, 'virtual', 'end', e.target.value)}
-                                                    className="w-full px-3 py-2 rounded-lg bg-white border border-gray-200 focus:border-purple-500 text-sm"
+                                                    className="w-full px-3 py-2 rounded-xl bg-surface-secondary border border-white/[0.06] focus:border-accent text-sm"
                                                 />
                                             </div>
                                         </div>
@@ -497,11 +497,11 @@ const ProfileCompletion = () => {
 
                         {/* Preferences Card */}
                         <GlassCard className="p-6 lg:col-span-2 mt-2">
-                            <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                            <h2 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
                                 <span>⚙️</span> Preferences
                             </h2>
                             <div className="flex justify-between items-center py-2">
-                                <span className="text-gray-600 font-medium">Application Language</span>
+                                <span className="text-foreground-muted font-medium">Application Language</span>
                                 <LanguageSwitcher />
                             </div>
                         </GlassCard>
@@ -512,7 +512,7 @@ const ProfileCompletion = () => {
                             <Button
                                 type="button"
                                 onClick={() => navigate('/doctor/dashboard')}
-                                className="px-6 py-3 rounded-xl font-semibold bg-gray-200 hover:bg-gray-300 text-gray-700 transition-all"
+                                className="px-6 py-3 rounded-xl font-semibold bg-surface-secondary hover:bg-surface-tertiary text-foreground-muted transition-all"
                             >
                                 Back to Dashboard
                             </Button>
@@ -520,7 +520,7 @@ const ProfileCompletion = () => {
                         <Button
                             type="submit"
                             disabled={saving}
-                            className="px-8 py-4 rounded-xl font-bold text-lg bg-blue-600 hover:bg-blue-700 text-white transition-all shadow-lg"
+                            className="px-8 py-4 rounded-xl font-bold text-lg bg-accent hover:bg-accent-hover text-white transition-all shadow-card"
                         >
                             {saving
                                 ? 'Saving...'

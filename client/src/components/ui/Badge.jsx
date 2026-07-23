@@ -7,18 +7,18 @@ const Badge = ({
     ...props
 }) => {
     const variants = {
-        default: 'bg-gray-100 text-gray-700',
-        success: 'bg-green-100 text-green-700',
-        warning: 'bg-yellow-100 text-yellow-700',
-        danger: 'bg-red-100 text-red-700',
-        info: 'bg-blue-100 text-blue-700',
-        primary: 'bg-primary-blue/10 text-primary-blue',
+        default: 'bg-surface-tertiary text-foreground-muted',
+        success: 'bg-medical-subtle text-medical',
+        warning: 'bg-warning/10 text-warning',
+        danger: 'bg-error/10 text-error',
+        info: 'bg-info/10 text-info',
+        accent: 'bg-accent-subtle text-accent',
     };
 
     return (
         <span
             className={clsx(
-                'inline-block px-3 py-1 rounded-full text-xs font-medium',
+                'inline-flex items-center px-3 py-1 rounded-full text-xs font-medium',
                 variants[variant],
                 className
             )}

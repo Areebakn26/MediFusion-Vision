@@ -67,10 +67,10 @@ const PatientManagement = () => {
         <div className="space-y-8">
             <div className="flex flex-col md:flex-row justify-between items-center gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-teal-500 bg-clip-text text-transparent">
+                    <h1 className="text-3xl font-bold text-accent">
                         Patient Management
                     </h1>
-                    <p className="text-gray-500 mt-1">View and manage your patient records</p>
+                    <p className="text-foreground-muted mt-1">View and manage your patient records</p>
                 </div>
                 <div className="flex gap-3 w-full md:w-auto">
                     <div className="relative flex-1 md:w-72">
@@ -80,7 +80,7 @@ const PatientManagement = () => {
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="pl-10"
                         />
-                        <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                        <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-foreground-subtle" />
                     </div>
                     <Button variant="outline" className="px-3">
                         <FaFilter />
@@ -99,9 +99,9 @@ const PatientManagement = () => {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: index * 0.1 }}
                         >
-                            <GlassCard className="p-6 hover:shadow-lg transition-all group relative overflow-hidden">
+                            <GlassCard className="p-6 hover:shadow-card-hover transition-all group relative overflow-hidden">
                                 <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                                    <FaHeartbeat className="w-24 h-24 text-primary-blue" />
+                                    <FaHeartbeat className="w-24 h-24 text-accent" />
                                 </div>
 
                                 <div className="flex justify-between items-start mb-6 relative z-10">
@@ -110,32 +110,32 @@ const PatientManagement = () => {
                                             <img
                                                 src={patient.image}
                                                 alt={patient.name}
-                                                className="w-16 h-16 rounded-full object-cover ring-4 ring-white shadow-md"
+                                                className="w-16 h-16 rounded-full object-cover ring-4 ring-surface-secondary shadow-card"
                                             />
-                                            <div className={`absolute bottom-0 right-0 w-4 h-4 rounded-full border-2 border-white ${patient.status === 'Stable' ? 'bg-green-500' :
-                                                    patient.status === 'Critical' ? 'bg-red-500' : 'bg-blue-500'
+                                            <div className={`absolute bottom-0 right-0 w-4 h-4 rounded-full border-2 border-surface-secondary ${patient.status === 'Stable' ? 'bg-success' :
+                                                    patient.status === 'Critical' ? 'bg-error' : 'bg-accent'
                                                 }`}></div>
                                         </div>
                                         <div>
-                                            <h3 className="font-bold text-lg text-gray-800 group-hover:text-primary-blue transition-colors">{patient.name}</h3>
-                                            <p className="text-sm text-gray-500">{patient.age !== 'N/A' ? `${patient.age} yrs` : 'Age N/A'}, {patient.gender}</p>
-                                            <p className="text-xs text-gray-400">{patient.email}</p>
+                                            <h3 className="font-bold text-lg text-foreground group-hover:text-accent transition-colors">{patient.name}</h3>
+                                            <p className="text-sm text-foreground-muted">{patient.age !== 'N/A' ? `${patient.age} yrs` : 'Age N/A'}, {patient.gender}</p>
+                                            <p className="text-xs text-foreground-subtle">{patient.email}</p>
                                         </div>
                                     </div>
                                     {getStatusBadge(patient.status)}
                                 </div>
 
-                                <div className="space-y-2 mb-5 relative z-10 bg-white/50 p-3 rounded-xl">
-                                    <div className="flex items-center text-sm text-gray-700">
-                                        <FaHeartbeat className="mr-3 text-primary-blue shrink-0" />
+                                <div className="space-y-2 mb-5 relative z-10 bg-surface-secondary/50 p-3 rounded-xl">
+                                    <div className="flex items-center text-sm text-foreground">
+                                        <FaHeartbeat className="mr-3 text-accent shrink-0" />
                                         <span>Condition: <span className="font-semibold">{patient.condition}</span></span>
                                     </div>
-                                    <div className="flex items-center text-sm text-gray-700">
+                                    <div className="flex items-center text-sm text-foreground">
                                         <span className="mr-3 text-lg">🩸</span>
                                         <span>Blood Group: <span className="font-semibold">{patient.blood_group}</span></span>
                                     </div>
-                                    <div className="flex items-center text-sm text-gray-700">
-                                        <FaHistory className="mr-3 text-primary-blue shrink-0" />
+                                    <div className="flex items-center text-sm text-foreground">
+                                        <FaHistory className="mr-3 text-accent shrink-0" />
                                         <span>Last Visit: {patient.lastVisit ? new Date(patient.lastVisit).toLocaleDateString() : 'N/A'}</span>
                                     </div>
                                 </div>

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useParams, useNavigate } from 'react-router-dom';
 import { GlassCard, Button, Input } from '../components/ui';
+import { AnimatedLogo } from '../components/brand';
 import api from '../services/api';
 import { toast } from 'react-hot-toast';
 
@@ -42,15 +43,15 @@ const ResetPassword = () => {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pastel-blue via-white to-pastel-teal relative overflow-hidden">
-            {/* Floating Background Shapes */}
+        <div className="min-h-screen flex items-center justify-center bg-surface relative overflow-hidden">
+            <div className="fixed inset-0 bg-gradient-to-br from-accent-subtle/20 via-surface to-medical-subtle/20" />
             <motion.div
-                className="absolute top-20 left-20 w-64 h-64 bg-primary-teal/20 rounded-full blur-3xl"
+                className="absolute top-20 left-20 w-64 h-64 bg-accent-subtle/30 rounded-full blur-3xl"
                 animate={{ y: [0, 30, 0], x: [0, 20, 0] }}
                 transition={{ duration: 8, repeat: Infinity }}
             />
             <motion.div
-                className="absolute bottom-20 right-20 w-96 h-96 bg-primary-blue/20 rounded-full blur-3xl"
+                className="absolute bottom-20 right-20 w-96 h-96 bg-medical-subtle/30 rounded-full blur-3xl"
                 animate={{ y: [0, -30, 0], x: [0, -20, 0] }}
                 transition={{ duration: 10, repeat: Infinity }}
             />
@@ -62,28 +63,26 @@ const ResetPassword = () => {
                 className="w-full max-w-md px-4 z-10"
             >
                 <GlassCard className="p-8" hover={false}>
-                    {/* Header */}
                     <div className="text-center mb-8">
-                        <h2 className="text-3xl font-bold bg-gradient-to-r from-primary-blue to-primary-teal bg-clip-text text-transparent mb-2">
+                        <AnimatedLogo size={40} animate={false} />
+                        <h2 className="text-2xl font-light text-foreground mb-1">
                             Reset Password
                         </h2>
-                        <p className="text-gray-600">
+                        <p className="text-foreground-muted text-sm">
                             Enter your new password
                         </p>
                     </div>
 
-                    {/* Error Message */}
                     {error && (
                         <motion.div
                             initial={{ opacity: 0, y: -10 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm"
+                            className="mb-6 p-4 rounded-xl bg-error/10 border border-error/20 text-error text-sm"
                         >
                             {error}
                         </motion.div>
                     )}
 
-                    {/* Form */}
                     <form onSubmit={handleSubmit} className="space-y-6">
                         <Input
                             label="New Password"

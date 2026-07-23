@@ -1,61 +1,42 @@
 @import "tailwindcss";
-
-@theme {
-  --color-primary-50: #f0fdfa;
-  --color-primary-100: #ccfbf1;
-  --color-primary-200: #99f6e4;
-  --color-primary-300: #5eead4;
-  --color-primary-400: #2dd4bf;
-  --color-primary-500: #14b8a6;
-  --color-primary-600: #0d9488;
-  --color-primary-700: #0f766e;
-  --color-primary-800: #115e59;
-  --color-primary-900: #134e4a;
-
-  --color-secondary-50: #eff6ff;
-  --color-secondary-100: #dbeafe;
-  --color-secondary-200: #bfdbfe;
-  --color-secondary-300: #93c5fd;
-  --color-secondary-400: #60a5fa;
-  --color-secondary-500: #3b82f6;
-  --color-secondary-600: #2563eb;
-  --color-secondary-700: #1d4ed8;
-  --color-secondary-800: #1e40af;
-  --color-secondary-900: #1e3a8a;
-
-  --font-sans: Inter, system-ui, sans-serif;
-
-  --radius-xl: 1rem;
-  --radius-2xl: 1.5rem;
-  --radius-3xl: 2rem;
-
-  --shadow-soft: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
-  --shadow-glow: 0 0 15px rgba(13, 148, 136, 0.3);
-}
+@import url('https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@config "../tailwind.config.js";
 
 :root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: "Inter Tight", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   line-height: 1.5;
   font-weight: 400;
-  color-scheme: light;
-  color: #0f172a;
-  background-color: #f8fafc;
+  color-scheme: dark;
+  color: #F8FAFC;
+  background-color: #0F172A;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  /* Gradient CSS Variables */
+  --gradient-hero: linear-gradient(135deg, #5B6AFF 0%, #38BDF8 100%);
+  --gradient-hero-subtle: linear-gradient(135deg, rgba(91,106,255,0.08) 0%, rgba(56,189,248,0.08) 100%);
+  --gradient-accent-glow: radial-gradient(ellipse at center, rgba(91,106,255,0.15) 0%, transparent 70%);
+  --gradient-surface-glass: linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.01) 100%);
+  --gradient-surface-elevated: linear-gradient(180deg, #1E293B 0%, #0F172A 100%);
+  --gradient-card-hover: linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%);
+  --gradient-medical: linear-gradient(135deg, #10B981 0%, #059669 100%);
+  --gradient-warning: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+  --gradient-error: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+  --gradient-scroll-reveal: linear-gradient(180deg, transparent 0%, rgba(91,106,255,0.03) 50%, transparent 100%);
+  --gradient-border-glow: linear-gradient(90deg, transparent, rgba(91,106,255,0.3), transparent);
 }
 
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background-color: #f8fafc;
+  background-color: #0F172A;
   pointer-events: auto !important;
   user-select: auto !important;
 }
 
-/* Emergency: Ensure main content is always clickable */
 main,
 [role="main"],
 .main-content {
@@ -64,14 +45,12 @@ main,
   z-index: 1;
 }
 
-/* Force all pages to be clickable */
 body,
 html {
   pointer-events: auto !important;
   user-select: auto !important;
 }
 
-/* Remove any blocking overlays */
 [class*="overlay"],
 [class*="backdrop"],
 [class*="loading"],
@@ -79,7 +58,6 @@ html {
   pointer-events: auto !important;
 }
 
-/* Ensure all interactive elements work */
 button,
 a,
 input,
@@ -90,13 +68,11 @@ textarea,
   cursor: pointer !important;
 }
 
-/* REMOVE ALL LOADING OVERLAYS */
 [class*="fixed"][class*="inset-0"][class*="backdrop-blur"] {
   display: none !important;
   pointer-events: none !important;
 }
 
-/* Force unblock button to always be clickable */
 button[style*="FORCE UNBLOCK"],
 button[style*="z-index: 99999"] {
   pointer-events: auto !important;
@@ -105,7 +81,6 @@ button[style*="z-index: 99999"] {
   display: block !important;
 }
 
-/* CRITICAL: Force scrolling and clicking */
 html,
 body {
   overflow: auto !important;
@@ -116,7 +91,6 @@ body {
   position: relative !important;
 }
 
-/* FORCE all interactive elements to be clickable */
 main,
 main *,
 form,
@@ -141,7 +115,6 @@ a,
   cursor: pointer !important;
 }
 
-/* Force main content areas to be clickable and scrollable - HIGHEST PRIORITY */
 main,
 [role="main"],
 .main-content,
@@ -155,14 +128,12 @@ div[class*="flex-1"] {
   z-index: 100 !important;
 }
 
-/* CRITICAL: Ensure main content container is always on top */
 main>* {
   pointer-events: auto !important;
   position: relative !important;
   z-index: 101 !important;
 }
 
-/* Ensure forms and inputs work */
 form,
 input,
 select,
@@ -173,114 +144,198 @@ a {
   cursor: pointer !important;
 }
 
-/* Remove any fixed overlays that might be blocking - but be more specific */
-/* Remove any fixed overlays that might be blocking - but be more specific */
-/* Disabled: This was too aggressive and destroyed normal Tailwind Modals. */
-
-/* CRITICAL: Remove ALL transparent fixed overlays */
 div[style*="position: fixed"],
 div[style*="position:fixed"] {
   background-color: transparent !important;
 }
 
-/* Force remove any element with backdrop-filter that's not a modal */
-/* Disabled: This was too aggressive and destroyed glassmorphism effects. */
-
-/* Don't force overflow on all divs - too aggressive, breaks layout */
-/* Only force on main content areas */
 main>div,
 [role="main"]>div {
   overflow: visible !important;
 }
 
-/* Glassmorphism Utility */
-.glass {
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+.surface {
+  background: #1E293B;
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-/* Custom Scrollbar */
+.glass {
+  background: #1E293B;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
 ::-webkit-scrollbar {
   width: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: #1E293B;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #475569;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #64748B;
 }
 
-/* Animations */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
+/* Skip link for accessibility */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 1rem;
+  z-index: 9999;
+  padding: 0.75rem 1rem;
+  background: #5B6AFF;
+  color: white;
+  border-radius: 6px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: top 0.2s ease-out;
+}
 
-  to {
-    opacity: 1;
+.skip-link:focus {
+  top: 1rem;
+}
+
+/* Focus visible polyfill */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+:focus-visible {
+  outline: none;
+  ring: 2px;
+  ring-color: rgba(91, 106, 255, 0.35);
+  ring-offset: 2px;
+  ring-offset-color: #0F172A;
+}
+
+/* Reduced motion - comprehensive */
+@media (prefers-reduced-motion: reduce) {
+  .animate-pulse-slow { animation: none !important; }
+  
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
+  
+  /* Framer Motion reduced motion */
+  [data-framer-motion] {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+
+/* Touch device hover gating */
+@media (hover: hover) and (pointer: fine) {
+  .hover-lift:hover {
+    transform: translateY(-2px);
+  }
+  
+  .hover-scale:hover {
+    transform: scale(1.02);
+  }
+}
+
+/* Active press state */
+.press-scale:active {
+  transform: scale(0.97);
+}
+
+/* Hardware accelerated transforms */
+.gpu-accelerated {
+  transform: translateZ(0);
+  will-change: transform, opacity;
+}
+
+/* Text balance for headings */
+h1, h2, h3 {
+  text-wrap: balance;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes slideUp {
-  from {
-    transform: translateY(20px);
-    opacity: 0;
-  }
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
 
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(12px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
 }
 
 @keyframes pulseSlow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
 
-  0%,
-  100% {
-    opacity: 1;
-  }
+@keyframes revealUp {
+  from { clip-path: inset(100% 0 0 0); }
+  to { clip-path: inset(0 0 0 0); }
+}
 
-  50% {
-    opacity: 0.7;
-  }
+@keyframes drawLine {
+  from { stroke-dashoffset: 1000; }
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes pulseNode {
+  0%, 100% { r: 8; }
+  50% { r: 10; }
 }
 
 .animate-fade-in {
-  animation: fadeIn 0.5s ease-out forwards;
+  animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .animate-slide-up {
-  animation: slideUp 0.6s ease-out forwards;
+  animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-reveal-up {
+  animation: revealUp 0.6s cubic-bezier(0.77, 0, 0.175, 1) forwards;
 }
 
 .animate-pulse-slow {
   animation: pulseSlow 3s infinite;
 }
 
-.delay-100 {
-  animation-delay: 100ms;
+.animate-draw-line {
+  animation: drawLine 1.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-.delay-200 {
-  animation-delay: 200ms;
+.animate-pulse-node {
+  animation: pulseNode 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-.delay-300 {
-  animation-delay: 300ms;
-}
+.delay-100 { animation-delay: 100ms; }
+.delay-200 { animation-delay: 200ms; }
+.delay-300 { animation-delay: 300ms; }
 
-/* --- Accessibility & Multi-language Support --- */
-
-/* Multi-language Support: RTL (Urdu) */
 html.rtl {
   direction: rtl;
   text-align: right;
@@ -306,16 +361,16 @@ html.rtl .ml-4 {
   margin-right: 1rem !important;
 }
 
-/* Accessibility Settings: High Contrast */
 body.high-contrast {
   filter: contrast(1.2) saturate(1.5);
 }
 
+body.high-contrast .surface,
 body.high-contrast .glass,
-body.high-contrast div[class*="bg-white"] {
-  background: #ffffff !important;
-  border: 1px solid #000 !important;
-  color: #000 !important;
+body.high-contrast div[class*="bg-surface"] {
+  background: #000000 !important;
+  border: 1px solid #fff !important;
+  color: #fff !important;
 }
 
 body.high-contrast p,
@@ -326,14 +381,13 @@ body.high-contrast h3,
 body.high-contrast h4,
 body.high-contrast h5,
 body.high-contrast h6 {
-  color: #000 !important;
+  color: #fff !important;
 }
 
 body.high-contrast button {
-  border: 2px solid #000 !important;
+  border: 2px solid #fff !important;
 }
 
-/* Accessibility Settings: Large Text */
 body.large-text {
   font-size: 1.15rem !important;
 }
@@ -347,6 +401,7 @@ body.large-text h3 {
 body.large-text button,
 body.large-text input,
 body.large-text select,
+body.large-text textarea,
 body.large-text p {
   font-size: 1.15rem !important;
 }
