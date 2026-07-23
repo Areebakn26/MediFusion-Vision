@@ -31,6 +31,20 @@ server/uploads/*
 
 # dev scripts (one-time utilities, not project source)
 server/scripts/
+server/create_*.js
+server/check*.js
+server/debug_*.js
+server/reset-*.js
+server/unlock-*.js
+server/test*.js
+server/seed.js
+
+# local startup/shutdown scripts
+start_all.*
+stop_all.*
+
+# personal status/progress notes (not project source)
+PROJECT_STATUS_REPORT.md
 
 # build outputs
 client/dist/
