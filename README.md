@@ -1,131 +1,153 @@
+# MediFusion Vision
 
-# 🏥 MediFusion Vision
+AI-powered medical diagnostic platform for retinal eye disease detection and brain MRI analysis (tumor & Alzheimer's). Features a web frontend for patients/doctors/admins, a mobile app, and real-time AI inference via Flask microservices.
 
-AI-powered medical diagnostic web application for retinal eye disease detection and brain MRI analysis (tumor + Alzheimer's).
+## Architecture
 
-**Developer:** Areeha Nayab | **Branch:** `feature/gradcam-integration`
+```
+┌──────────────┐    ┌──────────────────┐    ┌──────────────────┐
+│  React Web   │    │  Flutter Mobile  │    │  Postman / API   │
+│  localhost:5173 │   │  Android/iOS     │    │  Consumers       │
+└──────┬───────┘    └────────┬─────────┘    └────────┬─────────┘
+       │                     │                       │
+       └──────────┬──────────┴───────────┬───────────┘
+                  │                      │
+         ┌────────▼────────┐   ┌─────────▼──────────┐
+         │  Node.js API    │   │  Socket.IO (Chat    │
+         │  Express 5      │   │  & Notifications)   │
+         │  Port 5000      │   │  Port 5000          │
+         └────┬───────┬────┘   └─────────────────────┘
+              │       │
+     ┌────────▼─┐  ┌──▼──────────┐
+     │ Retinal  │  │  Brain MRI │
+     │ FlaskAPI │  │  Flask API │
+     │ :5002    │  │  :5003     │
+     └──────────┘  └────────────┘
+```
 
----
+## Tech Stack
 
-## 🧠 What This App Does
-
-| Feature | Model | Detects |
+| Layer | Technology | Port |
 |---|---|---|
-| Retinal Analysis | EfficientNetB3 (TensorFlow) | Cataract, Diabetic Retinopathy, Glaucoma, Normal |
-| Brain Tumor | ResNet18 (PyTorch) | Glioma, Meningioma, Pituitary, No Tumor |
-| Alzheimer's | DenseNet121 (PyTorch) | Mild/Moderate/Very Mild Demented, Non-Demented |
+| Retinal AI | EfficientNetB3 + TensorFlow + GradCAM | 5002 |
+| Brain AI | ResNet18 / DenseNet121 + PyTorch + GradCAM | 5003 |
+| Backend | Node.js + Express 5 + Sequelize | 5000 |
+| Database | PostgreSQL (Neon Cloud) | — |
+| Web Frontend | React 19 + Vite 7 + TailwindCSS 4 + Framer Motion | 5173 |
+| Mobile | Flutter 3+ (Bloc, GoRouter, Dio) | — |
+| PDF | Puppeteer + PDFKit | — |
+| Payments | Stripe | — |
+| Realtime | Socket.IO | — |
+| Auth | JWT + bcryptjs | — |
+| AI Notes | Groq SDK (Whisper + Llama) | — |
 
-All models include **GradCAM heatmap** visualization and XAI reasoning.
+## AI Models
 
----
+| Model | Task | Detects |
+|---|---|---|
+| EfficientNetB3 (TensorFlow) | Retinal Analysis | Cataract, Diabetic Retinopathy, Glaucoma, Normal |
+| ResNet18 (PyTorch) | Brain Tumor | Glioma, Meningioma, Pituitary, No Tumor |
+| DenseNet121 (PyTorch) | Alzheimer's | Mild/Moderate/Very Mild Demented, Non-Demented |
 
-## 🗂️ Project Structure
+All models include GradCAM heatmap visualization and confidence scores.
 
-```
-MediFusion-Vision/
-├── client/                          ← React + Vite frontend (port 5173)
-│   └── src/pages/doctor/
-│       └── Diagnostics.jsx          ← AI Diagnostics UI (retinal + brain)
-├── server/                          ← Node.js + Express backend (port 5000)
-│   ├── controllers/
-│   │   ├── scanController.js        ← AI analysis + report logic
-│   │   └── pdfController.js         ← PDF report generation (Puppeteer)
-│   └── routes/scanRoutes.js
-├── Retinal_Model/                   ← Flask API for retinal (port 5002)
-│   └── app.py
-└── Brain_Model/                     ← Flask API for brain (port 5003)
-    └── app.py
-```
+## Features
 
----
+**Patient**
+- Register / login with email verification & password reset
+- Book & manage appointments with doctors
+- Upload medical scans for AI analysis
+- View scan results with GradCAM overlays
+- Video consultation (Jitsi integration)
+- Payment & billing (Stripe)
+- Medical records & history
 
-## ⚙️ Setup Instructions
+**Doctor**
+- Patient management & appointment scheduling
+- AI Diagnostics (retinal & brain scan analysis)
+- Review AI results, flag incorrect predictions (feedback loop)
+- Generate & download PDF reports
+- Video consultation room
+- Analytics dashboard
 
-### 1. Clone the repo
+**Admin**
+- User & doctor management with verification queue
+- Scan repository with deduplication
+- Feedback dashboard with retraining controls
+- AI model management & deployment
+- System content management
+- Financial support management
+
+**Mobile (Flutter)**
+- Patient dashboard & appointment booking
+- View medical records & scan results
+- Real-time notifications
+- Video consultations
+- Stripe payments
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js 18+
+- Python 3.9+
+- PostgreSQL (or Neon cloud connection)
+
+### 1. Clone
 
 ```bash
 git clone https://github.com/Areebakn26/MediFusion-Vision.git
 cd MediFusion-Vision
-git checkout feature/gradcam-integration
 ```
 
----
-
-### 2. Download ML Model Files
-
-These are NOT in the repo (too large). Download manually:
-
-| File | Location | Download From |
-|---|---|---|
-| `efficientnetb3-Eye Disease-91.47.keras` | `Retinal_Model/` | Kaggle / shared drive |
-| `best_tumor_model.pth` | `Brain_Model/` | Kaggle / shared drive |
-| `alzheimer_model_v2.pth` | `Brain_Model/` | Kaggle / shared drive |
-
----
-
-### 3. Retinal Model — Flask API Setup
-
-```bash
-cd Retinal_Model
-python3 -m venv venv
-source venv/bin/activate        # Mac/Linux
-pip install flask tensorflow==2.9.1 pillow numpy opencv-python tf-keras
-python3 app.py
-# → Running on http://127.0.0.1:5002
-```
-
----
-
-### 4. Brain Model — Flask API Setup
-
-```bash
-cd Brain_Model
-python3 -m venv venv
-source venv/bin/activate        # Mac/Linux
-pip install flask torch torchvision pillow numpy grad-cam
-python3 app.py
-# → Running on http://127.0.0.1:5003
-```
-
----
-
-### 5. Node.js Backend Setup
+### 2. Backend Setup
 
 ```bash
 cd server
 npm install
 ```
 
-Create `server/.env` file:
+Create `server/.env`:
 
 ```env
 PORT=5000
+NODE_ENV=development
+
+DB_NAME=medifusionvision
+DB_USER=postgres
+DB_PASSWORD=your_password
+DB_HOST=localhost
+DB_PORT=5432
+
 JWT_SECRET=your_jwt_secret
-DATABASE_URL=your_neon_postgres_url
-EMAIL_USER=your_gmail@gmail.com
-EMAIL_PASS=your_gmail_app_password
-RETINAL_API_URL=http://localhost:5002
-BRAIN_API_URL=http://localhost:5003
+
+STRIPE_SECRET_KEY=sk_test_your_key
+
+EMAIL_USER=your_email@gmail.com
+EMAIL_PASS=your_app_password
+
+GROQ_API_KEY=gsk_your_groq_key
+
+CLIENT_URL=http://localhost:5173
 ```
 
 ```bash
 npm run dev
-# → Server running on port 5000
+# → http://localhost:5000
 ```
 
----
-
-### 6. React Frontend Setup
+### 3. Frontend Setup
 
 ```bash
 cd client
 npm install
 ```
 
-Create `client/.env` file:
+Create `client/.env`:
 
 ```env
 VITE_API_URL=http://localhost:5000/api
+VITE_STRIPE_PUBLISHABLE_KEY=pk_test_your_key
 ```
 
 ```bash
@@ -133,194 +155,113 @@ npm run dev
 # → http://localhost:5173
 ```
 
----
-
-## 🚀 Running All Services
-
-Open **4 terminals** from the project root:
+### 4. Retinal Model API
 
 ```bash
-# Terminal 1 — Retinal Flask API
-cd Retinal_Model && source venv/bin/activate && python3 app.py
+cd Retinal_Model
+pip install flask tensorflow pillow numpy opencv-python matplotlib flask-cors
+python app.py
+# → http://localhost:5002
+```
 
-# Terminal 2 — Brain Flask API
-cd Brain_Model && source venv/bin/activate && python3 app.py
+### 5. Brain MRI Model API
 
-# Terminal 3 — Node.js Backend
+```bash
+cd Brain_Model
+pip install flask torch torchvision pillow numpy grad-cam
+python app.py
+# → http://localhost:5003
+```
+
+### 6. Mobile App (Flutter)
+
+```bash
+cd mobile_app
+flutter pub get
+flutter run
+```
+
+### Running All Services
+
+```bash
+# Terminal 1 — Retinal API
+cd Retinal_Model && python app.py
+
+# Terminal 2 — Brain API
+cd Brain_Model && python app.py
+
+# Terminal 3 — Backend
 cd server && npm run dev
 
-# Terminal 4 — React Frontend
+# Terminal 4 — Frontend
 cd client && npm run dev
 ```
 
-Then open: **http://localhost:5173**
+Open **http://localhost:5173**
 
----
-
-## 🔌 API Endpoints
+## API Overview
 
 | Method | Endpoint | Description |
 |---|---|---|
-| GET | `/api/health` | Retinal Flask health check (port 5002) |
-| GET | `/api/health` | Brain Flask health check (port 5003) |
+| POST | `/api/auth/register` | Register new user |
+| POST | `/api/auth/login` | Login |
+| POST | `/api/auth/forgot-password` | Send reset email |
+| POST | `/api/auth/reset-password` | Reset password |
+| GET | `/api/doctors` | List doctors |
+| POST | `/api/appointments` | Book appointment |
+| POST | `/api/scans/upload` | Upload medical scan |
 | POST | `/api/scans/:id/analyze` | Run retinal AI analysis |
-| POST | `/api/scans/:id/analyze-brain` | Run brain AI analysis |
-| POST | `/api/scans/:id/report` | Save doctor's report |
+| POST | `/api/scans/:id/analyze-brain` | Run brain MRI AI analysis |
 | POST | `/api/scans/:id/report/pdf` | Download PDF report |
+| POST | `/api/feedback` | Submit AI feedback |
+| POST | `/api/payments/create-payment-intent` | Create Stripe payment |
 
----
+## Project Structure
 
-## 🛠️ Tech Stack
-
-| Layer | Technology | Port |
-|---|---|---|
-| Retinal AI | EfficientNetB3 + TensorFlow 2.9.1 + GradCAM | Flask :5002 |
-| Brain AI | ResNet18 + DenseNet121 + PyTorch + GradCAM | Flask :5003 |
-| Backend | Node.js + Express + Sequelize | :5000 |
-| Database | PostgreSQL (Neon Cloud) | — |
-| Frontend | React + Vite + TailwindCSS + Framer Motion | :5173 |
-| PDF | Puppeteer | — |
-| Auth | JWT | — |
-
----
-
-## ⚠️ Important Notes
-
-- `.env` files are **not in the repo** — create them manually using the template above
-- Model files (`.keras`, `.pth`) are **not in the repo** — download separately
-- `venv/` and `node_modules/` are **not in the repo** — run install commands above
-- Mac Intel x86_64 | Python 3.9.6 | Node.js v22+
-
----
-
-## 📋 Pending Tasks
-
-- [ ] End-to-end test (waiting for scan upload fix)
-- [ ] Patient email notification on report finalization
-- [ ] Brain MRI PDF report template
-- [ ] Patient report view in their profile
-- [ ] Merge `feature/gradcam-integration` → `main` after testing
-## 🚀 Setup & Installation Guide
-
-This section explains how to set up the codebase and the AI Models locally.
-
-### 1. Prerequisites
-- Node.js (v18+)
-- Python (3.9+)
-- PostgreSQL (or connection to your Neon database)
-
-### 2. AI Model Setup (Important)
-To avoid massive file uploads and hitting GitHub storage limits, the large AI model files (.pth, .h5) are **not** tracked in this repository. You must download them manually.
-
-1. **Download the Models**: [Insert Link to Google Drive / OneDrive here]
-2. **Place Brain Models**: Place lzheimer_model_v2.pth and est_tumor_model.pth inside the Brain_Model/ directory.
-3. **Place Retinal Models**: Place efficientnetb3-Eye Disease-91.47.h5 inside the Retinal_Model/ directory.
-
-### 3. Running the Node.js Server & Client
-Open two separate terminals for the backend and frontend.
-
-**Terminal 1 (Backend - Server):**
-\\\ash
-cd server
-npm install
-npm run dev
-\\\
-
-**Terminal 2 (Frontend - Client):**
-\\\ash
-cd client
-npm install
-npm run dev
-\\\
-
-### 4. Running the AI Microservices
-You need to run the Python Flask servers for the AI models to process scans. Open two new terminals.
-
-**Terminal 3 (Brain Model API):**
-\\\ash
-cd Brain_Model
-pip install -r requirements.txt  # (if applicable)
-python app.py
-\\\
-
-**Terminal 4 (Retinal Model API):**
-\\\ash
-cd Retinal_Model
-pip install -r requirements.txt  # (if applicable)
-python app.py
-\\\
-
-You're all set! The full MediFusion Vision ecosystem is now running locally.
-
----
-
-## Feedback Loop System (feature/feedback-loop branch)
-
-### What Was Implemented
-
-| Phase | Description |
-|-------|-------------|
-| Phase 1 | DB schema — `ai_feedback`, `model_versions`, `retraining_jobs` tables + Sequelize migrations |
-| Phase 2 | Backend API — `feedbackController` with 5 routes (submit, list, stats, trigger retrain, job history) |
-| Phase 3 | Retrain trigger logic — 4 auto-conditions (validated ≥ 100, accuracy < 90%, days ≥ 30, class corrections ≥ 50) |
-| Phase 4 | Doctor UI — "Flag as Incorrect" modal in Diagnostics with diagnosis/reason dropdowns |
-| Phase 5 | Admin Dashboard — `/admin/feedback` with stats cards, retraining panel, corrections table |
-
----
-
-### Running the Feedback Loop Locally
-
-**Step 1 — Run DB migrations (first time only):**
-```bash
-cd server
-npx sequelize-cli db:migrate
+```
+MediFusion-Vision/
+├── client/                    # React + Vite frontend
+│   ├── src/
+│   │   ├── components/        # UI components (brand, ui)
+│   │   ├── layouts/           # Admin, Main layouts
+│   │   ├── pages/             # admin/, doctor/, patient/ pages
+│   │   ├── context/           # React context providers
+│   │   ├── services/          # API service layer
+│   │   └── utils/             # Helpers & i18n
+│   └── public/images/         # Static assets
+├── server/                    # Node.js + Express backend
+│   ├── controllers/           # 12 route controllers
+│   ├── routes/                # 10 route files
+│   ├── models/                # 18 Sequelize models
+│   ├── middleware/             # Auth middleware
+│   ├── services/              # AI quality, consensus, deploy
+│   ├── jobs/                  # Cron jobs (retraining)
+│   ├── utils/                 # AI notes, helpers
+│   └── migrations/            # Sequelize migrations
+├── mobile_app/                # Flutter mobile app
+│   └── lib/                   # Dart source
+├── Brain_Model/               # PyTorch Flask API
+│   └── app.py                 # Tumor + Alzheimer inference
+├── Retinal_Model/             # TensorFlow Flask API
+│   └── app.py                 # Eye disease inference
+├── docs/                      # SRS, SDS, implementation docs
+└── mockups/                   # UI mockups
 ```
 
-**Step 2 — Start all services (4 terminals):**
-```bash
-# Terminal 1 — Backend
-cd server && node index.js
+## Database Models
 
-# Terminal 2 — Frontend
-cd client && npm run dev
+18 Sequelize models: User, DoctorProfile, PatientProfile, Scan, Appointment, Report, Payment, Prescription, MedicalHistory, AIFeedback, ModelVersion, RetrainingJob, ChatLog, ConsultationNote, Notification, Feedback, PaymentTransaction, and associations.
 
-# Terminal 3 — Brain Model API (port 5003)
-cd Brain_Model && python app.py
+## Feedback Loop
 
-# Terminal 4 — Retinal Model API (port 5002)
-cd Retinal_Model && python app.py
-```
+The platform includes a built-in feedback loop for continuous AI improvement:
 
----
+1. **Flag Incorrect** — Doctors flag incorrect AI predictions
+2. **Quality Checker** — Scores feedback by confidence delta & consensus
+3. **Consensus Engine** — Requires N doctors to agree before validating
+4. **Auto-Retrain** — Triggers retraining on 4 conditions (100+ validated, <90% accuracy, 30+ days, 50+ corrections)
+5. **Model Versioning** — Track & rollback deployed model versions
 
-### Testing the Feedback Loop End-to-End
+## License
 
-1. **Login as doctor** → go to **Diagnostic** in the sidebar
-2. Select any scan that belongs to a patient with a confirmed appointment
-3. Click **Run AI Analysis** → wait for the result
-4. Click the orange **Flag as Incorrect** button (top-right of results panel)
-5. Select corrected diagnosis, reason, optional notes → click **Submit Feedback**
-6. **Login as admin** → navigate to `/admin/feedback`
-7. View the submitted correction in the corrections table
-8. Click **Trigger Retraining** to simulate a retraining job
-
----
-
-### What Is Real vs Simulated
-
-| Component | Status |
-|-----------|--------|
-| Feedback collection & DB storage | ✅ Real |
-| Stats API (counts, accuracy, retrain check) | ✅ Real |
-| Retrain trigger conditions (4 checks) | ✅ Real |
-| Retrain job creation & status tracking | ✅ Real |
-| Actual PyTorch/Keras model retraining | 🔄 Simulated (3-second mock, future work) |
-
----
-
-### Future Work
-
-- **Quality Checker** — score feedback based on confidence delta and doctor consensus
-- **Consensus Engine** — require N doctors to agree before marking feedback as validated
-- **Actual retraining pipeline** — integrate PyTorch/Keras training loop triggered by the API
-- **Model versioning & rollback** — deploy new model versions and roll back if accuracy drops
+MIT
