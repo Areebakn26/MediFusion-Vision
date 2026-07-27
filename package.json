@@ -11,7 +11,8 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "",
+  "description": "AI-powered medical diagnostic platform for retinal eye disease detection and brain MRI analysis",
+  "homepage": "https://medifusion-vision-demo.vercel.app/",
   "dependencies": {
     "concurrently": "^9.2.1"
   }

@@ -1,5 +1,7 @@
 # MediFusion Vision
 
+> 🚀 **Live Demo:** [medifusion-vision-demo.vercel.app](https://medifusion-vision-demo.vercel.app/)
+
 AI-powered medical diagnostic platform for retinal eye disease detection and brain MRI analysis (tumor & Alzheimer's). Features a web frontend for patients/doctors/admins, a mobile app, and real-time AI inference via Flask microservices.
 
 ## Architecture
